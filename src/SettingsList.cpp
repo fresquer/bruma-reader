@@ -149,6 +149,7 @@ std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* registry) {
     sleepScreenValues[CrossPointSettings::TRANSPARENT_CUSTOM] = StrId::STR_TRANSPARENT;
 
     std::vector<StrId> uiThemeValues(CrossPointSettings::UI_THEME_COUNT);
+    uiThemeValues[CrossPointSettings::BRUMA] = StrId::STR_THEME_BRUMA;
     uiThemeValues[CrossPointSettings::LYRA] = StrId::STR_THEME_LYRA;
     uiThemeValues[CrossPointSettings::LYRA_CUSTOM] = StrId::STR_THEME_LYRA_CUSTOM;
     uiThemeValues[CrossPointSettings::LYRA_CAROUSEL] = StrId::STR_THEME_LYRA_CAROUSEL;

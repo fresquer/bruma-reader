@@ -132,6 +132,10 @@ Upon turning the device on for the first time, you will be placed on the **[Home
 
 The Home screen is the main entry point to the firmware. From here you can navigate to **[Reading Mode](#4-reading-mode)** with the most recently read book, the **[Browse Files](#33-browse-files-screen)** screen, the **[Recent Books](#34-recent-books-screen)** screen, the **[File Transfer](#35-file-transfer-screen)** screen, or **[Settings](#36-settings)**.
 
+The optional **Bruma** theme (Settings → Display → UI Theme) adds a reading dashboard. It shows the current book with its progress, total reading time and last session; up to two recent books with their completion status; and today's goal, streak and finished-book count. Select **View full reading stats** for the existing statistics screen. Completed books remain visible here even when removed from the separate Recents list. Library and Apps have direct buttons, and any other configured Home shortcuts remain on a second page reached with Down.
+
+**Refresh time** opens Wi-Fi selection if needed and synchronizes the clock through NTP. Back returns to the dashboard after success, failure or cancellation. The existing themes and saved theme selection remain available; Bruma uses recent reading history rather than the configurable favorites source.
+
 ### 3.2 Reading Mode
 
 See [Reading Mode](#4-reading-mode) below for more information.
@@ -263,6 +267,7 @@ The Settings screen allows you to configure the device's behavior. There are a f
   
   - "Lyra" - The new theme for Crosspoint featuring rounded elements and menu icons
   - "Lyra vCodex" - CPR-vCodex's 3-book Home carousel with reading progress
+  - "Bruma" - current book, recent reads and reading statistics dashboard
   - "Lyra Carousel" - cover-focused 3-book Home carousel with recent/favorite book source
 
 - **Restore Light on Wake** *(X4 Pro only)*: Turn the frontlight back on when the device wakes if it was on before sleep; on by default. Brightness and warmth themselves are adjusted from the swipe-down frontlight panel, not from this menu (see [Frontlight](#frontlight-x4-pro-only)).

@@ -14,6 +14,7 @@ class ClockSyncActivity final : public Activity {
   void onEnter() override;
   void onExit() override;
   void loop() override;
+  bool preventAutoSleep() override { return state == SYNCING; }
   bool skipLoopDelay() override { return state == SYNCING; }
   void render(RenderLock&&) override;
 

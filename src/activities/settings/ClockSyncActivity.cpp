@@ -7,8 +7,10 @@
 #include <WiFi.h>
 
 #include <cstdio>
+#include <ctime>
 
 #include "CrossPointSettings.h"
+#include "CrossPointState.h"
 #include "MappedInputManager.h"
 #include "activities/network/WifiSelectionActivity.h"
 #include "components/UITheme.h"
@@ -85,7 +87,8 @@ void ClockSyncActivity::runSync() {
     return;
   }
 
-  const bool ok = halClock.syncFromNTP();
+  const bool hasRtc = halClock.isAvailable();
+  const bool ok = hasRtc ? halClock.syncFromNTP() : TimeUtils::syncTimeWithNtp();
   if (!ok) {
     state = FAILED;
     requestUpdate();
@@ -98,12 +101,24 @@ void ClockSyncActivity::runSync() {
 
   // Push the freshly written RTC value into the system clock so the status bar
   // and reading stats pick it up immediately.
-  TimeUtils::applySystemClockFromRtc(true);
+  if (hasRtc) TimeUtils::applySystemClockFromRtc(true);
+  const uint32_t timestamp = TimeUtils::getCurrentValidTimestamp();
+  if (timestamp) {
+    APP_STATE.registerValidTimeSync(timestamp);
+    APP_STATE.saveToFile();
+  }
 
   // Read the freshly synced time back for the user-facing confirmation.
   char buf[9];
-  if (TimeUtils::formatStatusBarClockTime(buf, sizeof(buf), SETTINGS.clockFormat == 1)) {
+  if (hasRtc && TimeUtils::formatStatusBarClockTime(buf, sizeof(buf), SETTINGS.clockFormat == 1)) {
     snprintf(syncedTime, sizeof(syncedTime), "%s", buf);
+  }
+  if (!hasRtc && timestamp) {
+    const time_t epoch = static_cast<time_t>(timestamp);
+    tm local{};
+    if (localtime_r(&epoch, &local)) {
+      strftime(syncedTime, sizeof(syncedTime), SETTINGS.clockFormat == 1 ? "%I:%M %p" : "%H:%M", &local);
+    }
   }
   state = SUCCESS;
   requestUpdate();

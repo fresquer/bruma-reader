@@ -99,6 +99,7 @@ std::vector<StrId> buildSleepScreenValues() {
 
 std::vector<StrId> buildUiThemeValues() {
   std::vector<StrId> values(CrossPointSettings::UI_THEME_COUNT, StrId::STR_THEME_LYRA);
+  values[CrossPointSettings::BRUMA] = StrId::STR_THEME_BRUMA;
   values[CrossPointSettings::LYRA] = StrId::STR_THEME_LYRA;
   values[CrossPointSettings::LYRA_CUSTOM] = StrId::STR_THEME_LYRA_CUSTOM;
   values[CrossPointSettings::LYRA_CAROUSEL] = StrId::STR_THEME_LYRA_CAROUSEL;

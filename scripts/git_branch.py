@@ -306,7 +306,12 @@ def inject_version(env):
 
     if kind_env == "default":
         release_number, release_counter_path = get_dev_release_number(project_dir, base_version)
-        build_counter, counter_path = next_dev_counter(project_dir, base_version, release_number)
+        if os.environ.get("VCODEX_RELEASE_DRY_RUN") == "1":
+            counter_path = os.path.join(project_dir, COUNTER_DIR,
+                                       DEV_COUNTER_FILE_TEMPLATE.format(base=_counter_token(base_version), release=release_number))
+            build_counter = _read_counter(counter_path, 0)
+        else:
+            build_counter, counter_path = next_dev_counter(project_dir, base_version, release_number)
         short_sha = get_git_short_sha(project_dir)
         # Dev builds of both targets share the release line and dev counter;
         # the x4pro suffix keeps the version strings (and packaged artifact

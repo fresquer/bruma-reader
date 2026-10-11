@@ -8,6 +8,7 @@
 
 #include "CrossPointSettings.h"
 #include "ReadingSessionLog.h"
+#include "util/ReadingTimeEstimator.h"
 
 inline uint64_t getDailyReadingGoalMs() { return SETTINGS.getDailyGoalMs(); }
 
@@ -25,6 +26,7 @@ struct ReadingBookStats {
   std::string coverBmpPath;
   std::string chapterTitle;
   std::vector<ReadingDayStats> readingDays;
+  ReadingPace readingPace;
   uint64_t totalReadingMs = 0;
   uint32_t sessions = 0;
   uint32_t lastSessionMs = 0;
@@ -86,6 +88,7 @@ class ReadingStatsStore {
   std::vector<ReadingDayStats> readingDays;
   std::vector<ReadingSessionLogEntry> sessionLog;
   SessionState activeSession;
+  ReadingTimeEstimator readingTimeEstimator;
   ReadingSessionSnapshot lastSessionSnapshot;
   uint32_t sessionSerialCounter = 0;
   mutable SummaryCache summaryCache;
@@ -143,6 +146,13 @@ class ReadingStatsStore {
   void beginSession(const std::string& path, const std::string& title, const std::string& author,
                     const std::string& coverBmpPath, uint8_t progressPercent = 0, const std::string& chapterTitle = "",
                     uint8_t chapterProgressPercent = 0);
+  // Timing hooks: page/layout updates run under the reader RenderLock. Interrupt
+  // is atomic and may also be called by menu/resume paths without that lock.
+  void prepareReadingPace(uint32_t layout);
+  void readingPageVisible(int32_t page, int32_t chapter);
+  void readingPageTurn(int32_t nextPage, int32_t nextChapter, bool manualSingle);
+  void interruptReadingPace() { readingTimeEstimator.interrupt(); }
+  void formatRemainingTime(char* out, size_t capacity, double pages) const;
   void noteActivity();
   void tickActiveSession();
   void resumeSession();

@@ -364,7 +364,12 @@ std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* registry) {
         SettingInfo::Toggle(StrId::STR_ACHIEVEMENT_POPUPS, &CrossPointSettings::achievementPopups, "achievementPopups",
                             StrId::STR_APPS),
 
+        SettingInfo::Enum(StrId::STR_LIBRARY_ORDER, &CrossPointSettings::libraryOrder,
+                          {StrId::STR_TITLE, StrId::STR_AUTHOR, StrId::STR_LIBRARY_LAST_READ, StrId::STR_LIBRARY_ADDED},
+                          "libraryOrder", StrId::STR_APPS),
         // --- Shortcuts (web-only launcher placement) ---
+        SettingInfo::Enum(StrId::STR_LIBRARY, &CrossPointSettings::libraryShortcut,
+                          {StrId::STR_HOME_LOCATION, StrId::STR_APPS}, "libraryShortcut", StrId::STR_SHORTCUTS_SECTION),
         SettingInfo::Enum(StrId::STR_BROWSE_FILES, &CrossPointSettings::browseFilesShortcut,
                           {StrId::STR_HOME_LOCATION, StrId::STR_APPS}, "browseFilesShortcut",
                           StrId::STR_SHORTCUTS_SECTION),
@@ -466,6 +471,9 @@ std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* registry) {
                           StrId::STR_KOREADER_SYNC),
 
         // --- Status Bar Settings (web-only, uses StatusBarSettingsActivity) ---
+        SettingInfo::Enum(StrId::STR_READING_TIME_REMAINING, &CrossPointSettings::statusBarReadingTime,
+                          {StrId::STR_HIDE, StrId::STR_BOOK, StrId::STR_CHAPTER}, "statusBarReadingTime",
+                          StrId::STR_CUSTOMISE_STATUS_BAR),
         SettingInfo::Toggle(StrId::STR_CHAPTER_PAGE_COUNT, &CrossPointSettings::statusBarChapterPageCount,
                             "statusBarChapterPageCount", StrId::STR_CUSTOMISE_STATUS_BAR),
         SettingInfo::Toggle(StrId::STR_BOOK_PROGRESS_PERCENTAGE, &CrossPointSettings::statusBarBookProgressPercentage,

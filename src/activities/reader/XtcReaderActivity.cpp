@@ -96,7 +96,7 @@ void exitReaderToHomeOrStats(GfxRenderer& renderer, MappedInputManager& mappedIn
   if (SETTINGS.showStatsAfterReading && countedSession && !bookPath.empty()) {
     activityManager.replaceActivity(
         std::make_unique<ReadingStatsDetailActivity>(renderer, mappedInput, bookPath, ReadingStatsDetailContext{true}));
-  } else {
+  } else if (!activityManager.returnToLibrary()) {
     activityManager.goHome();
   }
 }
@@ -137,6 +137,7 @@ void XtcReaderActivity::onEnter() {
                              xtc->calculateProgress(currentPage), getChapterTitleForStats(*xtc, currentPage),
                              getChapterProgressForStats(*xtc, currentPage));
 
+  READING_STATS.prepareReadingPace(0x58544301u);  // Fixed XTC pagination, version 1
   // Trigger first update
   requestUpdate();
 }
@@ -234,7 +235,7 @@ bool XtcReaderActivity::handleBackNavigation() {
     READING_STATS.endSession();
     ACHIEVEMENTS.recordSessionEnded(READING_STATS.getLastSessionSnapshot());
     showPendingAchievementPopups(renderer);
-    activityManager.goToFileBrowser(fileBrowserPath);
+    if (!activityManager.returnToLibrary()) activityManager.goToFileBrowser(fileBrowserPath);
   } else {
     exitReaderAfterOptionalCompletedMove();
   }
@@ -314,6 +315,7 @@ void XtcReaderActivity::loop() {
 
   if (prevTriggered) {
     READING_STATS.noteActivity();
+    READING_STATS.interruptReadingPace();
     if (currentPage >= static_cast<uint32_t>(skipAmount)) {
       currentPage -= skipAmount;
     } else {
@@ -322,7 +324,16 @@ void XtcReaderActivity::loop() {
     requestUpdate();
   } else if (nextTriggered) {
     READING_STATS.noteActivity();
-    currentPage += skipAmount;
+    {
+      RenderLock lock(*this);
+      const auto* beforeChapter = findCurrentChapter(*xtc, currentPage);
+      const auto* afterChapter = findCurrentChapter(*xtc, currentPage + skipAmount);
+      const int chapterKey = beforeChapter ? static_cast<int>(beforeChapter->startPage) : -1;
+      READING_STATS.readingPageTurn(
+          currentPage + skipAmount, chapterKey,
+          !skipPages && beforeChapter == afterChapter && currentPage + 1 < xtc->getPageCount());
+      currentPage += skipAmount;
+    }
     if (currentPage >= xtc->getPageCount()) {
       currentPage = xtc->getPageCount();  // Allow showing "End of book"
     }
@@ -397,7 +408,11 @@ void XtcReaderActivity::render(RenderLock&&) {
     return;
   }
 
-  renderPage();
+  if (renderPage()) {
+    const auto* chapter = findCurrentChapter(*xtc, currentPage);
+    READING_STATS.readingPageVisible(currentPage, chapter ? static_cast<int>(chapter->startPage) : -1);
+  } else
+    READING_STATS.interruptReadingPace();
   saveProgress();
 }
 
@@ -469,10 +484,19 @@ void XtcReaderActivity::renderStatusBarOverlay(const StatusBarOverlayPosition po
   const int displayPage = static_cast<int>(currentPage) + 1;
   const float progress = pageCount > 0 ? (static_cast<float>(displayPage) * 100.0f) / pageCount : 0.0f;
   const auto pageInfo = getStatusBarInfo();
-  GUI.drawStatusBar(renderer, progress, pageInfo.currentPage, pageInfo.pageCount, pageInfo.title, paddingBottom);
+  const auto* chapter =
+      sb.readingTimeMode == CrossPointSettings::READING_TIME_CHAPTER ? findCurrentChapter(*xtc, currentPage) : nullptr;
+  const double remainingPages = chapter && chapter->endPage >= chapter->startPage
+                                    ? ReadingTimeEstimator::remainingPages(currentPage - chapter->startPage + 1,
+                                                                           chapter->endPage - chapter->startPage + 1)
+                                    : ReadingTimeEstimator::remainingPages(displayPage, pageCount);
+  char remaining[48];
+  READING_STATS.formatRemainingTime(remaining, sizeof(remaining), remainingPages);
+  GUI.drawStatusBar(renderer, progress, pageInfo.currentPage, pageInfo.pageCount, pageInfo.title, paddingBottom, 0,
+                    true, false, false, remaining);
 }
 
-void XtcReaderActivity::renderPage() {
+bool XtcReaderActivity::renderPage() {
   struct DarkModeScope {
     GfxRenderer& renderer;
     bool restore;
@@ -542,13 +566,13 @@ void XtcReaderActivity::renderPage() {
       renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() * 3 / 8, tr(STR_PAGE_LOAD_ERROR), true,
                                 EpdFontFamily::BOLD);
       renderer.displayBuffer();
-      return;
+      return false;
     }
 
     drawStatusBarOverlays();
     ReaderUtils::displayWithRefreshCycle(renderer, pagesUntilFullRefresh, forceFullRefresh);
     LOG_DBG("XTR", "Rendered page %lu/%lu (1-bit streaming)", currentPage + 1, xtc->getPageCount());
-    return;
+    return true;
   }
 
   // Calculate buffer size for one page
@@ -569,7 +593,7 @@ void XtcReaderActivity::renderPage() {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() * 3 / 8, tr(STR_MEMORY_ERROR), true,
                               EpdFontFamily::BOLD);
     renderer.displayBuffer();
-    return;
+    return false;
   }
 
   // Load page data
@@ -582,7 +606,7 @@ void XtcReaderActivity::renderPage() {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() * 3 / 8, tr(STR_PAGE_LOAD_ERROR), true,
                               EpdFontFamily::BOLD);
     renderer.displayBuffer();
-    return;
+    return false;
   }
 
   // Clear screen first
@@ -696,7 +720,7 @@ void XtcReaderActivity::renderPage() {
     free(pageBuffer);
 
     LOG_DBG("XTR", "Rendered page %lu/%lu (2-bit grayscale)", currentPage + 1, xtc->getPageCount());
-    return;
+    return true;
   } else {
     // 1-bit mode: 8 pixels per byte, MSB first
     const size_t srcRowBytes = (pageWidth + 7) / 8;  // 60 bytes for 480 width
@@ -727,6 +751,7 @@ void XtcReaderActivity::renderPage() {
   ReaderUtils::displayWithRefreshCycle(renderer, pagesUntilFullRefresh, forceFullRefresh);
 
   LOG_DBG("XTR", "Rendered page %lu/%lu (%u-bit)", currentPage + 1, xtc->getPageCount(), bitDepth);
+  return true;
 }
 
 void XtcReaderActivity::saveProgress() const {

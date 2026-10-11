@@ -978,7 +978,8 @@ void BaseTheme::fillPopupProgress(const GfxRenderer& renderer, const Rect& layou
 
 void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, const int currentPage,
                               const int pageCount, std::string title, const int paddingBottom, const int textYOffset,
-                              const bool fillMargin, const bool isPageBookmarked, const bool pageCountEstimated) const {
+                              const bool fillMargin, const bool isPageBookmarked, const bool pageCountEstimated,
+                              const char* remainingTime) const {
   auto metrics = UITheme::getInstance().getMetrics();
   int orientedMarginTop, orientedMarginRight, orientedMarginBottom, orientedMarginLeft;
   renderer.getOrientedViewableTRBL(&orientedMarginTop, &orientedMarginRight, &orientedMarginBottom,
@@ -1091,6 +1092,17 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
     leftClusterWidth += bookmarkStatusIconWidth + bookmarkGap;
   }
 
+  // The time is part of the right indicator cluster. Title yields space first;
+  // if fixed indicators already fill the lane, omit the time for this frame.
+  if (sb.readingTimeMode != CrossPointSettings::READING_TIME_HIDE && remainingTime && *remainingTime) {
+    const int timeWidth = renderer.getTextWidth(SMALL_FONT_ID, remainingTime);
+    const int gap = rightClusterWidth ? 10 : 0;
+    if (leftClusterWidth + rightClusterWidth + timeWidth + gap + 10 <= rightClusterX - leftClusterX) {
+      renderer.drawText(SMALL_FONT_ID, rightClusterX - rightClusterWidth - gap - timeWidth, textY, remainingTime);
+      rightClusterWidth += gap + timeWidth;
+    }
+  }
+
   // Draw Title
   if (!title.empty()) {
     textY -= textYOffset;
@@ -1114,6 +1126,7 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
       availableTitleSpace = rendererableScreenWidth - titleMarginLeft - titleMarginRight;
       titleMarginLeftAdjusted = titleMarginLeft;
     }
+    if (availableTitleSpace <= 0) return;
     if (titleWidth > availableTitleSpace) {
       title = renderer.truncatedText(SMALL_FONT_ID, title.c_str(), availableTitleSpace);
       titleWidth = renderer.getTextWidth(SMALL_FONT_ID, title.c_str());

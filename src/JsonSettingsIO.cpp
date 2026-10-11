@@ -658,6 +658,7 @@ bool loadSettingsDirect(CrossPointSettings& s, const JsonDocument& doc, bool* ne
     s.opdsPassword[sizeof(s.opdsPassword) - 1] = '\0';
   }
 
+  loadEnum("statusBarReadingTime", s.statusBarReadingTime, CrossPointSettings::STATUS_BAR_READING_TIME_COUNT);
   loadToggle("statusBarChapterPageCount", s.statusBarChapterPageCount);
   loadToggle("statusBarBookProgressPercentage", s.statusBarBookProgressPercentage);
   loadEnum("statusBarProgressBar", s.statusBarProgressBar, CrossPointSettings::STATUS_BAR_PROGRESS_BAR_COUNT);
@@ -727,6 +728,12 @@ bool loadSettingsDirect(CrossPointSettings& s, const JsonDocument& doc, bool* ne
 
   const uint8_t shortcutLocationCount = S::SHORTCUT_LOCATION_COUNT;
   const uint8_t shortcutOrderCount = static_cast<uint8_t>(getShortcutDefinitions().size() + 1);
+  s.libraryShortcut = clamp(doc["libraryShortcut"] | s.libraryShortcut, shortcutLocationCount, s.libraryShortcut);
+  s.libraryShortcutOrder =
+      clamp(doc["libraryShortcutOrder"] | s.libraryShortcutOrder, shortcutOrderCount, s.libraryShortcutOrder);
+  s.libraryShortcutVisible = clamp(doc["libraryShortcutVisible"] | s.libraryShortcutVisible, static_cast<uint8_t>(2),
+                                   s.libraryShortcutVisible);
+  s.libraryOrder = clamp(doc["libraryOrder"] | s.libraryOrder, static_cast<uint8_t>(4), s.libraryOrder);
   s.appsHubShortcutOrder =
       clamp(doc["appsHubShortcutOrder"] | s.appsHubShortcutOrder, shortcutOrderCount, s.appsHubShortcutOrder);
   s.browseFilesShortcut =
@@ -1098,6 +1105,7 @@ bool JsonSettingsIO::saveSettings(const CrossPointSettings& s, const char* path)
   doc["statusBarTitle"] = s.statusBarTitle;
   doc["statusBarBattery"] = s.statusBarBattery;
   doc["xtcStatusBarMode"] = s.xtcStatusBarMode;
+  doc["statusBarReadingTime"] = s.statusBarReadingTime;
   doc["statusBarClock"] = s.statusBarClock;
   doc["clockUtcOffsetQ"] = s.clockUtcOffsetQ;
   doc["clockFormat"] = s.clockFormat;
@@ -1114,6 +1122,10 @@ bool JsonSettingsIO::saveSettings(const CrossPointSettings& s, const char* path)
   doc["sleepImageOrder"] = s.sleepImageOrder;
   doc["timeZonePreset"] = TimeZoneRegistry::clampPresetIndex(s.timeZonePreset);
   doc["appsHubShortcutOrder"] = s.appsHubShortcutOrder;
+  doc["libraryShortcut"] = s.libraryShortcut;
+  doc["libraryShortcutOrder"] = s.libraryShortcutOrder;
+  doc["libraryShortcutVisible"] = s.libraryShortcutVisible;
+  doc["libraryOrder"] = s.libraryOrder;
   doc["browseFilesShortcut"] = s.browseFilesShortcut;
   doc["browseFilesShortcutOrder"] = s.browseFilesShortcutOrder;
   doc["syncDayShortcut"] = s.syncDayShortcut;
@@ -1635,6 +1647,13 @@ bool JsonSettingsIO::saveReadingStats(const ReadingStatsStore& store, const char
     writer.value(book.coverBmpPath);
     writer.literal(",\"chapterTitle\":");
     writer.value(book.chapterTitle);
+    writer.literal(",\"readingPace\":{\"pageMs\":");
+    writer.value(book.readingPace.pageMs);
+    writer.literal(",\"samples\":");
+    writer.value(book.readingPace.samples);
+    writer.literal(",\"layout\":");
+    writer.value(book.readingPace.layout);
+    writer.literal("}");
     writer.literal(",\"totalReadingMs\":");
     writer.value(book.totalReadingMs);
     writer.literal(",\"sessions\":");
@@ -1821,6 +1840,10 @@ bool JsonSettingsIO::loadReadingStatsDocument(ReadingStatsStore& store, const Js
     book.author = obj["author"] | std::string("");
     book.coverBmpPath = obj["coverBmpPath"] | std::string("");
     book.chapterTitle = obj["chapterTitle"] | std::string("");
+    book.readingPace.pageMs = obj["readingPace"]["pageMs"] | uint32_t(0);
+    book.readingPace.samples = obj["readingPace"]["samples"] | uint32_t(0);
+    book.readingPace.layout = obj["readingPace"]["layout"] | uint32_t(0);
+    book.readingPace.validate();
     book.totalReadingMs = obj["totalReadingMs"] | static_cast<uint64_t>(0);
     book.sessions = obj["sessions"] | static_cast<uint32_t>(0);
     book.lastSessionMs = obj["lastSessionMs"] | static_cast<uint32_t>(0);

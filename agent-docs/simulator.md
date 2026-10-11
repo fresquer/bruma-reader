@@ -93,3 +93,46 @@ This checks composition, not physical panel tones or refresh waveforms.
 - A host-portability problem in shared code (for example libc++ needing a
   complete type where GCC did not) is fixed in this repo.
 - Do not edit `.pio/libdeps/*/simulator`; PlatformIO discards it.
+
+## Bruma Library checks
+
+On macOS, `./bin/run-simulator.sh` builds and opens the X4 simulator. Use
+`./bin/run-simulator.sh --no-build` to reopen the current build immediately.
+The simulated SD is `fs_/`; books may be placed in any visible subfolder.
+Arrow keys navigate, Enter opens/selects, hold Enter opens the Library menu,
+and Escape goes back. To use a different SD directory, set `CROSSPOINT_SIM_SD`
+to its absolute path. The simulator writes settings/caches inside that directory,
+so use a copy rather than a mounted real device card.
+
+The Library feature includes an SD catalog scenario suite under `test/library/`.
+It compiles the production catalog and natural comparator against a host storage
+adapter that can inject read, write and directory enumeration failures:
+
+```bash
+cmake -S test -B build/test -DCMAKE_BUILD_TYPE=Release
+cmake --build build/test --target library_catalog_test
+ctest --test-dir build/test -R '^library_catalog$' --output-on-failure
+```
+
+The suite covers nested folders, supported extensions, metadata reuse, missing
+metadata, copies, all four orders, recent-history seeding, additions/deletions,
+cancellation, low memory and interrupted catalog/history writes. Its 501-book
+fixture uses a 10,240-byte catalog index; ordering temporarily needs another
+index of the same capacity. Visible book strings and filesystem/parser buffers
+are additional allocations, so this figure is not total firmware RAM usage.
+
+Use Python 3.10–3.14 and the pioarduino PlatformIO Core for device builds. Both
+`default` and `gh_release` accept `VCODEX_RELEASE_DRY_RUN=1` for verification
+without advancing their counters. Local macOS package pins belong in
+`platformio.local.ini`, not committed firmware configuration.
+
+### Remaining reading time checks
+
+After building `simulator`, run `python3 test/simulator/reading_time.py`. The
+script creates temporary EPUB, TXT, Markdown and XTC fixtures, measures five
+manual page advances, verifies restart persistence and layout invalidation,
+and changes Book to Chapter through the real status-bar settings popup. It also
+checks old settings, hidden time and both XTC overlay positions. Logs and BMP
+screenshots stay in `.codex-build/reading-time-qa/`; the personal `fs_/` SD is
+not modified. The existing `reader_regressions_test` includes the pure estimator
+tests for interval bounds, pauses, skips, counter wrap and rounding.

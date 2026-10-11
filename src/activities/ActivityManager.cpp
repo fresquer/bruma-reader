@@ -13,6 +13,7 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "OpdsServerStore.h"
+#include "ReadingStatsStore.h"
 #include "apps/AppsActivity.h"
 #include "boot_sleep/BootActivity.h"
 #include "boot_sleep/SleepActivity.h"
@@ -20,6 +21,7 @@
 #include "home/CrashActivity.h"
 #include "home/FileBrowserActivity.h"
 #include "home/HomeActivity.h"
+#include "home/LibraryActivity.h"
 #include "home/RecentBooksActivity.h"
 #include "network/CrossPointWebServerActivity.h"
 #include "network/UsbDriveActivity.h"
@@ -165,6 +167,8 @@ void ActivityManager::loop() {
         continue;
       }
 
+      const bool libraryReturn = libraryReaderOrigin && stackActivities.empty() &&
+                                 (currentActivity->isReaderActivity() || currentActivity->name == "ReadingStatsDetail");
       ActivityResult pendingResult = std::move(currentActivity->result);
       const uint8_t previousWeight = currentActivity->getUiTransitionRefreshWeight();
 
@@ -176,8 +180,8 @@ void ActivityManager::loop() {
         LOG_DBG("ACT", "No more activities on stack, going home");
         deferredPreviousUiRefreshWeight = previousWeight;
         lock.unlock();  // goHome may acquire its own lock
-        goHome();
-        continue;  // Will launch goHome immediately
+        if (!libraryReturn || !returnToLibrary()) goHome();
+        continue;  // Launch the destination immediately
 
       } else {
         currentActivity = std::move(stackActivities.back());
@@ -223,6 +227,7 @@ void ActivityManager::loop() {
           stackActivities.pop_back();
         }
       } else if (pendingAction == PendingAction::Push) {
+        if (currentActivity && currentActivity->isReaderActivity()) READING_STATS.interruptReadingPace();
         // Move current activity to stack
         stackActivities.push_back(std::move(currentActivity));
         LOG_DBG("ACT", "Pushed to activity stack, new size = %zu", stackActivities.size());
@@ -299,6 +304,20 @@ void ActivityManager::goToSettings() { replaceActivity(std::make_unique<Settings
 
 void ActivityManager::goToApps() { replaceActivity(std::make_unique<AppsActivity>(renderer, mappedInput)); }
 
+bool ActivityManager::goToLibrary(bool restoreSelection) {
+  auto library = makeUniqueNoThrow<LibraryActivity>(renderer, mappedInput, restoreSelection);
+  if (!library) {
+    LOG_ERR("LIB", "Not enough memory to open Library");
+    return false;
+  }
+  libraryReaderOrigin = false;
+  replaceActivity(std::move(library));
+  return true;
+}
+bool ActivityManager::returnToLibrary() {
+  if (!libraryReaderOrigin) return false;
+  return goToLibrary(true);
+}
 void ActivityManager::goToFileBrowser(std::string path) {
   replaceActivity(std::make_unique<FileBrowserActivity>(renderer, mappedInput, std::move(path)));
 }
@@ -338,6 +357,10 @@ void ActivityManager::goToEpubBookmark(std::string path, const int spineIndex, c
 }
 
 void ActivityManager::goToReader(std::string path, const bool allowFastInitialRefresh) {
+  if (currentActivity && currentActivity->name == "Library")
+    libraryReaderOrigin = true;
+  else if (currentActivity && !currentActivity->isReaderActivity() && currentActivity->name != "ReadingStatsDetail")
+    libraryReaderOrigin = false;
   if (path.empty()) {
     goToFileBrowser("/");
     return;
@@ -356,6 +379,9 @@ void ActivityManager::goToReader(std::string path, const bool allowFastInitialRe
   auto activity = ReaderActivity::create(renderer, mappedInput, std::move(path), allowFastInitialRefresh);
   if (activity) {
     replaceActivity(std::move(activity));
+  } else if (currentActivity && currentActivity->name == "Library") {
+    libraryReaderOrigin = false;
+    static_cast<LibraryActivity*>(currentActivity.get())->restoreAfterFailedOpen();
   }
 }
 
@@ -371,6 +397,7 @@ void ActivityManager::goToFullScreenMessage(std::string message, EpdFontFamily::
 }
 
 void ActivityManager::goHome(HomeMenuItem initialMenuItem, bool cleanInitialRefresh) {
+  libraryReaderOrigin = false;
   if (initialMenuItem == HomeMenuItem::NONE && currentActivity) {
     const auto& activityName = currentActivity->name;
     if (activityName == "FileBrowser") {

@@ -7,6 +7,7 @@ add_executable(reader_regressions_test
   ImageCacheFormatTest.cpp
   ImageDitherTest.cpp
   ImageSafetyTest.cpp
+  ReadingTimeEstimatorTest.cpp
   ReadingSessionLogTest.cpp
   RubyCjkLayoutTest.cpp
   TextBlockSerializationTest.cpp

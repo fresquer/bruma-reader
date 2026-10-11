@@ -1017,7 +1017,11 @@ void loop() {
       const unsigned long idleStart = millis();
       while (millis() - idleStart < 50) {
         delay(10);
+#ifdef SIMULATOR
+        if (gpio.wasAnyPressed()) break;
+#else
         if (gpio.rawInputActive()) break;
+#endif
       }
     } else {
       // Short delay to prevent tight loop while still being responsive

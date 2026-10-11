@@ -143,6 +143,9 @@ void AppsActivity::activateIndex(const int index) {
 void AppsActivity::openApp(const int index) {
   std::unique_ptr<Activity> activity;
   switch (appShortcuts[index]->id) {
+    case ShortcutId::Library:
+      activityManager.goToLibrary();
+      break;
     case ShortcutId::BrowseFiles:
       activityManager.goToFileBrowser();
       return;

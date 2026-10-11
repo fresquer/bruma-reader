@@ -253,6 +253,17 @@ size_t HalFile::getName(char* name, size_t len) { HAL_FILE_WRAPPED_CALL(getName,
 size_t HalFile::size() { HAL_FILE_FORWARD_CALL(size, ); }              // already thread-safe, no need to wrap
 size_t HalFile::fileSize() { HAL_FILE_FORWARD_CALL(fileSize, ); }      // already thread-safe, no need to wrap
 uint64_t HalFile::fileSize64() { HAL_FILE_FORWARD_CALL(fileSize, ); }  // already thread-safe, no need to wrap
+uint64_t HalFile::modificationStamp() {
+  HalStorage::StorageLock lock;
+  if (!impl) return 0;
+  uint16_t date = 0, time = 0;
+  if (!impl->file.getModifyDateTime(&date, &time)) return 0;
+  return (static_cast<uint32_t>(date) << 16) | time;
+}
+bool HalFile::readError() {
+  HalStorage::StorageLock lock;
+  return !impl || impl->file.getError();
+}
 bool HalFile::seek(size_t pos) { HAL_FILE_WRAPPED_CALL(seekSet, pos); }
 bool HalFile::seek64(uint64_t pos) { HAL_FILE_WRAPPED_CALL(seekSet, pos); }
 bool HalFile::seekCur(int64_t offset) { HAL_FILE_WRAPPED_CALL(seekCur, offset); }

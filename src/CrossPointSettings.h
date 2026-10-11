@@ -341,7 +341,15 @@ class CrossPointSettings {
   uint8_t sleepScreenCoverFilter = NO_FILTER;
   // Use a full clean refresh when drawing the sleep screen
   uint8_t cleanSleepRefresh = 1;
+  enum STATUS_BAR_READING_TIME : uint8_t {
+    READING_TIME_HIDE = 0,
+    READING_TIME_BOOK = 1,
+    READING_TIME_CHAPTER = 2,
+    STATUS_BAR_READING_TIME_COUNT
+  };
+
   // Status bar settings (statusBar retained for migration only)
+  uint8_t statusBarReadingTime = READING_TIME_BOOK;
   uint8_t statusBar = FULL;
   uint8_t statusBarChapterPageCount = 1;
   uint8_t statusBarBookProgressPercentage = 1;
@@ -453,7 +461,11 @@ class CrossPointSettings {
   uint8_t achievementsEnabled = 1;
   uint8_t achievementPopups = 1;
   uint8_t appsHubShortcutOrder = 1;
-  uint8_t browseFilesShortcut = SHORTCUT_HOME;
+  uint8_t libraryShortcut = SHORTCUT_HOME;
+  uint8_t libraryShortcutOrder = 0;
+  uint8_t libraryShortcutVisible = 1;
+  uint8_t libraryOrder = 0;
+  uint8_t browseFilesShortcut = SHORTCUT_APPS;
   uint8_t browseFilesShortcutOrder = 0;
   // Legacy Stats shortcut fields retained for settings.json migration to readingStatsShortcut.
   uint8_t statsShortcut = SHORTCUT_HOME;
@@ -583,6 +595,7 @@ class CrossPointSettings {
   // editors read the raw fields. Deliberately unlocked: every field it reads is
   // a single byte, so the worst case is one frame drawn with a mixed status bar.
   struct StatusBarSpec {
+    uint8_t readingTimeMode = READING_TIME_BOOK;
     bool showChapterPageCount = false;
     bool showBookProgressPercent = false;
     uint8_t titleMode = HIDE_TITLE;  // STATUS_BAR_TITLE
@@ -601,11 +614,12 @@ class CrossPointSettings {
     // Visibility of the text lane. Clock hardware presence is the caller's
     // concern: pass halClock.isAvailable(), or true for layout reservation.
     bool textLaneVisible(bool clockAvailable) const {
-      return showChapterPageCount || showBookProgressPercent || showsTitle() || showBattery ||
-             (showsClock() && clockAvailable);
+      return readingTimeMode != READING_TIME_HIDE || showChapterPageCount || showBookProgressPercent || showsTitle() ||
+             showBattery || (showsClock() && clockAvailable);
     }
   };
   StatusBarSpec statusBarSpec() const;
+  uint32_t readingPaceLayoutKey(uint16_t width, uint16_t height) const;
 
   // Resolved text-rendering configuration for the Epub layout engine. The
   // viewport is renderer/orientation-derived, so the caller supplies it.

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 
+#include "LibraryStore.h"
 #include "ReadingStatsStore.h"
 #include "util/BookIdentity.h"
 
@@ -119,6 +120,9 @@ void RecentBooksStore::normalizeBooks() {
 
 void RecentBooksStore::addBook(const std::string& path, const std::string& title, const std::string& author,
                                const std::string& coverBmpPath, const std::string& bookId) {
+  // Shared successful-open hook. Metadata refresh (updateBook) does not touch
+  // the library's reading order. This runs after the Library screen releases RAM.
+  if (!LibraryStore::recordOpened(path)) LOG_ERR("LIB", "Could not persist book opening");
   // Drop stale entries first so a new add cannot evict a valid book in their stead.
   pruneMissing();
 

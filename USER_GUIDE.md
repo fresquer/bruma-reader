@@ -790,3 +790,55 @@ When the display is not working, connect a serial monitor if possible and look f
 > **X4 Pro recovery from CPR-vCodex 1.5.0.28–1.5.0.30:** do not use the blind SD sequence above while one of these builds is installed. Those experimental builds lack the complete X4 Pro touch/boot integration and use the wrong recovery key. Remove their BIN from the SD card and recover over USB with [CPR-vCodex Auto Flash](https://franssjz.github.io/cpr-vcodex/flash.html), choosing **Xteink X4 Pro**. If the frozen device cannot connect automatically, hold the upper/previous-page side button (GPIO0), press and release Reset, then release the side button to enter the ESP32-S3 ROM bootloader; select its new USB JTAG/Serial port in the browser. After flashing, unplug and reconnect USB, press and release Reset, and hold Power for a few seconds to start the device. The corrected firmware can use the touchscreen SD flow described above for later updates.
 
 There can be issues with broken cache or config. In this case, delete the `.crosspoint` directory on your SD card (or consider deleting only `settings.json`, `state.json`, or `epub_*` cache directories in the `.crosspoint/` folder).
+
+## Bruma Reader: SD Library
+
+**Library** on Home gathers EPUB, XTC/XTCH, TXT and Markdown books from every
+visible folder on the SD card into one list. Files remain in their original
+folders; hidden folders and system folders are excluded. **Browse Files**
+remains available in Apps (existing custom shortcut locations are retained).
+
+On first use, choose **Create library**. After copying, moving, changing or
+removing books, hold Confirm while browsing Library and choose **Update library**.
+Back cancels a scan and keeps the previous catalog. If a scan fails, the previous
+catalog is retained; check the SD card and try again. Opening Library normally
+uses the saved catalog and does not scan the SD card.
+
+Hold Confirm to open the Library menu. Choose **Title**, **Author**, **Last read**
+or **Recently added**. The choice survives a restart. Last read includes successful
+opens from other screens; unread books follow in title order. Recently added means
+first discovered during a library update, not the file's date. Books discovered
+in the same update are ordered by title. The initial collection is one batch.
+
+Rows show the book's title and author when available, otherwise the filename
+without its extension. Copies in different folders are separate rows; matching
+titles/authors also show the folder. Back from a book opened in Library returns
+to the same selected book, including after an optional reading statistics summary.
+Files that have been moved are new library entries on the next update; existing
+reader progress and identity handling continue to use the normal firmware logic.
+
+There is no text search, cover grid, reading-status filter or file management in
+this initial Library version. The SD catalog is under `/.crosspoint/`; it keeps a
+versioned current generation and a recoverable previous generation. Unchanged
+files reuse their metadata using size and modification time. Files without a
+usable modification date are re-inspected. The catalog uses a small in-memory
+index and materializes only the visible rows. A collection of 500 books is the
+validation target, not a fixed capacity limit; insufficient memory stops an
+update rather than publishing a truncated collection.
+
+### Tiempo restante de lectura
+
+En la personalización de la barra, **Tiempo restante** permite elegir **Oculto**,
+**Libro** (predeterminado) o **Capítulo**. La configuración también está disponible
+en la interfaz web. La barra muestra valores aproximados como `~25 min` o
+`~1 h 20 min`; si no hay datos suficientes de paginación, muestra `—`.
+
+El lector aprende tu ritmo por libro con avances manuales de una página entre
+5 segundos y 5 minutos. Descarta saltos, vueltas atrás, cambios de capítulo,
+menús, suspensión y giro automático. Durante las primeras cinco muestras utiliza
+una estimación provisional de un minuto por página. El aprendizaje se conserva
+tras reiniciar; cambiar la paginación de EPUB/TXT lo reinicia. En TXT, Markdown
+y XTC sin capítulos, la opción Capítulo representa el documento completo.
+
+La estimación utiliza las páginas que quedan después de la actual. No cambia
+el tiempo leído de las estadísticas ni el ritmo del giro automático.

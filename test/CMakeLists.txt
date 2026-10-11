@@ -94,3 +94,7 @@ if(Python3_Interpreter_FOUND)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/release_tools/FirmwareBudgetReportTest.py
   )
 endif()
+
+if(UNIX)
+  add_subdirectory(library)
+endif()

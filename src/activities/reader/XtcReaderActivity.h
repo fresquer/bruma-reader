@@ -39,7 +39,7 @@ class XtcReaderActivity final : public Activity {
     std::string title;
   };
 
-  void renderPage();
+  bool renderPage();
   void renderEndOfBook();
   void renderStatusBarOverlay(StatusBarOverlayPosition position) const;
   StatusBarInfo getStatusBarInfo() const;

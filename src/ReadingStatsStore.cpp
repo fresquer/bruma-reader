@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <FsHelpers.h>
 #include <HalStorage.h>
+#include <I18n.h>
 #include <JsonSettingsIO.h>
 #include <Logging.h>
 #include <esp_heap_caps.h>
@@ -520,6 +521,10 @@ void ReadingStatsStore::mergeBookInto(ReadingBookStats& primary, const ReadingBo
     primary.chapterTitle = duplicate.chapterTitle;
   }
 
+  if (duplicate.readingPace.samples &&
+      (!primary.readingPace.samples || duplicate.lastReadAt > primaryLastReadAtBefore)) {
+    primary.readingPace = duplicate.readingPace;
+  }
   primary.totalReadingMs += duplicate.totalReadingMs;
   primary.sessions += duplicate.sessions;
   primary.lastSessionMs = std::max(primary.lastSessionMs, duplicate.lastSessionMs);
@@ -545,6 +550,7 @@ void ReadingStatsStore::mergeBookInto(ReadingBookStats& primary, const ReadingBo
 }
 
 void ReadingStatsStore::normalizeBook(ReadingBookStats& book) {
+  book.readingPace.validate();
   if (book.bookId.empty()) {
     book.bookId = BookIdentity::resolveStableBookId(book.path);
   }
@@ -1188,6 +1194,7 @@ void ReadingStatsStore::rebuildSummaryCache() const {
 void ReadingStatsStore::beginSession(const std::string& path, const std::string& title, const std::string& author,
                                      const std::string& coverBmpPath, const uint8_t progressPercent,
                                      const std::string& chapterTitle, const uint8_t chapterProgressPercent) {
+  interruptReadingPace();
   if (path.empty()) {
     return;
   }
@@ -1264,7 +1271,37 @@ void ReadingStatsStore::tickActiveSession() {
   noteActivity();
 }
 
+void ReadingStatsStore::prepareReadingPace(uint32_t layout) {
+  if (!activeSession.active || activeSession.bookIndex >= books.size()) return;
+  if (books[activeSession.bookIndex].readingPace.prepare(layout)) {
+    interruptReadingPace();
+    markDirty();
+  }
+}
+
+void ReadingStatsStore::readingPageVisible(int32_t page, int32_t chapter) {
+  if (!activeSession.active || activeSession.bookIndex >= books.size()) return;
+  readingTimeEstimator.pageVisible(static_cast<uint32_t>(millis()), page, chapter);
+}
+
+void ReadingStatsStore::readingPageTurn(int32_t nextPage, int32_t nextChapter, bool manualSingle) {
+  if (!activeSession.active || activeSession.bookIndex >= books.size()) return;
+  auto& pace = books[activeSession.bookIndex].readingPace;
+  if (readingTimeEstimator.pageTurn(pace, static_cast<uint32_t>(millis()), nextPage, nextChapter, manualSingle)) {
+    markDirty();  // Existing session checkpoints persist this; never save per turn.
+  }
+}
+
+void ReadingStatsStore::formatRemainingTime(char* out, size_t capacity, double pages) const {
+  const auto pageMs = activeSession.active && activeSession.bookIndex < books.size()
+                          ? books[activeSession.bookIndex].readingPace.effectivePageMs()
+                          : 60000;
+  ReadingTimeEstimator::format(out, capacity, pages, pageMs, tr(STR_READING_TIME_MINUTES), tr(STR_READING_TIME_HOURS),
+                               tr(STR_READING_TIME_UNAVAILABLE));
+}
+
 void ReadingStatsStore::resumeSession() {
+  interruptReadingPace();
   if (!activeSession.active) {
     return;
   }
@@ -1433,6 +1470,7 @@ bool ReadingStatsStore::removeBook(const std::string& path) {
 }
 
 void ReadingStatsStore::endSession() {
+  interruptReadingPace();
   if (!activeSession.active || activeSession.bookIndex >= books.size()) {
     lastSessionSnapshot = {};
     activeSession = {};

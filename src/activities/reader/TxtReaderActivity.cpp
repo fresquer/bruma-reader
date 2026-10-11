@@ -54,7 +54,7 @@ void exitReaderToHomeOrStats(GfxRenderer& renderer, MappedInputManager& mappedIn
   if (SETTINGS.showStatsAfterReading && countedSession && !bookPath.empty()) {
     activityManager.replaceActivity(
         std::make_unique<ReadingStatsDetailActivity>(renderer, mappedInput, bookPath, ReadingStatsDetailContext{true}));
-  } else {
+  } else if (!activityManager.returnToLibrary()) {
     activityManager.goHome();
   }
 }
@@ -413,7 +413,7 @@ bool TxtReaderActivity::handleBackNavigation() {
     READING_STATS.endSession();
     ACHIEVEMENTS.recordSessionEnded(READING_STATS.getLastSessionSnapshot());
     showPendingAchievementPopups(renderer);
-    activityManager.goToFileBrowser(fileBrowserPath);
+    if (!activityManager.returnToLibrary()) activityManager.goToFileBrowser(fileBrowserPath);
   } else {
     exitReaderAfterOptionalCompletedMove();
   }
@@ -497,7 +497,11 @@ bool TxtReaderActivity::skipPages(const int amount) {
   if (newPage > totalPages) newPage = totalPages;
   if (newPage == currentPage) return false;
 
-  currentPage = newPage;
+  {
+    RenderLock lock(*this);
+    READING_STATS.readingPageTurn(newPage, 0, amount == 1 && newPage < totalPages);
+    currentPage = newPage;
+  }
   return true;
 }
 
@@ -509,6 +513,7 @@ void TxtReaderActivity::requestCurrentPageFullRefresh() {
 
 void TxtReaderActivity::toggleTemporaryStatusBar() {
   READING_STATS.noteActivity();
+  READING_STATS.interruptReadingPace();
   statusBarTemporarilyHidden = !statusBarTemporarilyHidden;
   initialized = false;
   pageOffsets.clear();
@@ -569,6 +574,7 @@ void TxtReaderActivity::initializeReader() {
   const int viewportHeight = renderer.getScreenHeight() - cachedOrientedMarginTop - cachedOrientedMarginBottom;
   const int lineHeight = renderer.getLineHeight(cachedFontId);
 
+  READING_STATS.prepareReadingPace(SETTINGS.readingPaceLayoutKey(viewportWidth, viewportHeight));
   linesPerPage = viewportHeight / lineHeight;
   if (linesPerPage < 1) linesPerPage = 1;
 
@@ -830,10 +836,14 @@ void TxtReaderActivity::render(RenderLock&&) {
   size_t offset = pageOffsets[currentPage];
   size_t nextOffset;
   currentPageLines.clear();
-  loadPageAtOffset(offset, currentPageLines, nextOffset);
+  const bool pageLoaded = loadPageAtOffset(offset, currentPageLines, nextOffset);
 
   renderer.clearScreen();
   renderPage();
+  if (pageLoaded)
+    READING_STATS.readingPageVisible(currentPage, 0);
+  else
+    READING_STATS.interruptReadingPace();
 
   // Save progress
   saveProgress();
@@ -939,7 +949,10 @@ void TxtReaderActivity::renderStatusBar() const {
   if (SETTINGS.statusBarSpec().showsTitle()) {
     title = txt->getTitle();
   }
-  GUI.drawStatusBar(renderer, progress, currentPage + 1, totalPages, title);
+  char remaining[48];
+  READING_STATS.formatRemainingTime(remaining, sizeof(remaining),
+                                    ReadingTimeEstimator::remainingPages(currentPage + 1, totalPages));
+  GUI.drawStatusBar(renderer, progress, currentPage + 1, totalPages, title, 0, 0, true, false, false, remaining);
 }
 
 void TxtReaderActivity::saveProgress() const {

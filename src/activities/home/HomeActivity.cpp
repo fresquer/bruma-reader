@@ -1221,6 +1221,9 @@ void HomeActivity::activateSelection() {
     onAppsOpen();
   } else if (selectedEntry.definition) {
     switch (selectedEntry.definition->id) {
+      case ShortcutId::Library:
+        activityManager.goToLibrary();
+        break;
       case ShortcutId::BrowseFiles:
         onFileBrowserOpen();
         break;

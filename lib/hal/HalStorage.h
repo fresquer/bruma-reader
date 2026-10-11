@@ -97,6 +97,9 @@ class HalFile : public Print {
   size_t size();
   size_t fileSize();
   uint64_t fileSize64();
+  // Packed FAT modification date/time; zero means unavailable.
+  uint64_t modificationStamp();
+  bool readError();
   bool seek(size_t pos);
   bool seek64(uint64_t pos);
   bool seekCur(int64_t offset);

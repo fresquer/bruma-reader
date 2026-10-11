@@ -355,6 +355,8 @@ unsigned long CrossPointSettings::getSleepTimeoutMs() const {
 
 CrossPointSettings::StatusBarSpec CrossPointSettings::statusBarSpec() const {
   StatusBarSpec spec;
+  spec.readingTimeMode =
+      statusBarReadingTime < STATUS_BAR_READING_TIME_COUNT ? statusBarReadingTime : READING_TIME_BOOK;
   spec.showChapterPageCount = statusBarChapterPageCount != 0;
   spec.showBookProgressPercent = statusBarBookProgressPercentage != 0;
   spec.titleMode = statusBarTitle;
@@ -368,6 +370,38 @@ CrossPointSettings::StatusBarSpec CrossPointSettings::statusBarSpec() const {
       statusBarProgressBar != HIDE_PROGRESS ? static_cast<uint8_t>((statusBarProgressBarThickness + 1) * 2) : 0;
   spec.xtcMode = xtcStatusBarMode;
   return spec;
+}
+
+uint32_t CrossPointSettings::readingPaceLayoutKey(uint16_t width, uint16_t height) const {
+  // Hash fields individually: no padding bytes, stable across MCU/host ABI.
+  const auto spec = readerRenderSpec(width, height);
+  uint32_t hash = 2166136261u;
+  const auto add = [&hash](uint32_t value) {
+    for (unsigned i = 0; i < 4; ++i) {
+      hash = (hash ^ (value & 255u)) * 16777619u;
+      value >>= 8;
+    }
+  };
+  add(1);  // Timing/layout interpretation version
+  add(spec.fontId);
+  uint32_t compression;
+  memcpy(&compression, &spec.lineCompression, sizeof(compression));
+  add(compression);
+  add(spec.extraParagraphSpacing);
+  add(spec.forceParagraphIndents);
+  add(spec.paragraphAlignment);
+  add(width);
+  add(height);
+  add(spec.hyphenationEnabled);
+  add(spec.embeddedStyle);
+  add(spec.imageRendering);
+  add(spec.focusReadingEnabled);
+  add(orientation);
+  for (const char c : sdFontFamilyName) {
+    if (!c) break;
+    add(static_cast<uint8_t>(c));
+  }
+  return hash ? hash : 1;
 }
 
 ReaderRenderSpec CrossPointSettings::readerRenderSpec(const uint16_t viewportWidth,

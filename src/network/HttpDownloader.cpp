@@ -88,10 +88,14 @@ HttpDownloader::DownloadError runOtaGetCompat(const std::string& url, Sink& sink
   NetworkClientSecure tls;
   tls.setInsecure();
   HTTPClient http;
+#ifdef SIMULATOR
+  http.begin(tls, url.c_str());
+#else
   if (!http.begin(tls, url.c_str())) {
     LOG_ERR("HTTP", "OTA begin failed: %s", url.c_str());
     return HttpDownloader::HTTP_ERROR;
   }
+#endif
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setTimeout(HTTP_TIMEOUT_MS);
   const std::string userAgent = userAgentString();

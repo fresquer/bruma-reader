@@ -187,7 +187,7 @@ void exitReaderToHomeOrStats(GfxRenderer& renderer, MappedInputManager& mappedIn
   if (SETTINGS.showStatsAfterReading && countedSession && !bookPath.empty()) {
     activityManager.replaceActivity(
         std::make_unique<ReadingStatsDetailActivity>(renderer, mappedInput, bookPath, ReadingStatsDetailContext{true}));
-  } else {
+  } else if (!activityManager.returnToLibrary()) {
     activityManager.goHome();
   }
 }
@@ -532,7 +532,7 @@ bool EpubReaderActivity::handleBackNavigation() {
     READING_STATS.endSession();
     ACHIEVEMENTS.recordSessionEnded(READING_STATS.getLastSessionSnapshot());
     showPendingAchievementPopups(renderer);
-    activityManager.goToFileBrowser(fileBrowserPath);
+    if (!activityManager.returnToLibrary()) activityManager.goToFileBrowser(fileBrowserPath);
     return true;
   }
 
@@ -1021,6 +1021,7 @@ void EpubReaderActivity::loop() {
 }
 
 void EpubReaderActivity::skipChapter(const bool forward) {
+  READING_STATS.interruptReadingPace();
   READING_STATS.noteActivity();
   lastPageTurnTime = millis();
   invalidateCurrentOverlayPageCache();
@@ -1628,6 +1629,7 @@ void EpubReaderActivity::applyOrientation(const uint8_t orientation) {
 }
 
 void EpubReaderActivity::toggleAutoPageTurn(const uint8_t selectedPageTurnOption) {
+  READING_STATS.interruptReadingPace();
   if (selectedPageTurnOption == 0 || selectedPageTurnOption >= std::size(PAGE_TURN_RATES)) {
     automaticPageTurnActive = false;
     return;
@@ -1723,6 +1725,9 @@ void EpubReaderActivity::pageTurn(bool isForwardTurn) {
   // delayed pagination completion restore the session-start page afterward.
   {
     RenderLock lock(*this);
+    const bool withinChapter = isForwardTurn && section && section->currentPage < section->pageCount - 1;
+    READING_STATS.readingPageTurn(section->currentPage + (isForwardTurn ? 1 : -1), currentSpineIndex,
+                                  withinChapter && !automaticPageTurnActive);
     clearDeferredReposition();
   }
   invalidateCurrentOverlayPageCache();
@@ -1831,6 +1836,7 @@ void EpubReaderActivity::render(RenderLock&& lock) {
   buildViewportWidth = viewportWidth;
   buildViewportHeight = viewportHeight;
   const ReaderRenderSpec renderSpec = makeRenderSpec(viewportWidth, viewportHeight);
+  READING_STATS.prepareReadingPace(SETTINGS.readingPaceLayoutKey(viewportWidth, viewportHeight));
 
   if (!section) {
     const auto filepath = epub->getSpineItem(currentSpineIndex).href;
@@ -2114,6 +2120,9 @@ void EpubReaderActivity::render(RenderLock&& lock) {
     renderContents(page, orientedMarginTop, orientedMarginRight, orientedMarginBottom, orientedMarginLeft);
     LOG_DBG("ERS", "Rendered page in %dms", millis() - start);
     lastRenderCompleteMs = millis();
+    if (overlay == Overlay::None && !automaticPageTurnActive) {
+      READING_STATS.readingPageVisible(section->currentPage, currentSpineIndex);
+    }
   }
   // Menus, screenshots and overlays can request a render without moving the
   // reader. Avoid several FAT operations for the same position file.
@@ -2547,8 +2556,15 @@ void EpubReaderActivity::renderStatusBar() const {
     title = epub->getTitle();
   }
 
+  char remaining[48];
+  const double remainingPages = sb.readingTimeMode == CrossPointSettings::READING_TIME_CHAPTER
+                                    ? ReadingTimeEstimator::remainingPages(currentPage, pageCount)
+                                    : ReadingTimeEstimator::epubBookPages(
+                                          currentPage, pageCount, epub->calculateProgress(currentSpineIndex, 0.0f),
+                                          epub->calculateProgress(currentSpineIndex, 1.0f));
+  READING_STATS.formatRemainingTime(remaining, sizeof(remaining), remainingPages);
   GUI.drawStatusBar(renderer, bookProgress, currentPage, pageCount, title, 0, textYOffset, true, currentPageBookmarked,
-                    section->isBuilding());
+                    section->isBuilding(), remaining);
 }
 
 void EpubReaderActivity::renderSectionLoadFailure() {
@@ -2684,6 +2700,7 @@ void EpubReaderActivity::discardOverlayPage() {
 }
 
 void EpubReaderActivity::openOverlay(Overlay target) {
+  READING_STATS.interruptReadingPace();
   const Overlay previous = overlay;
   overlay = target;
   if (!toolbarUi) {
@@ -2766,6 +2783,7 @@ void EpubReaderActivity::closeOverlayToPage() {
     renderer.restoreBwBuffer(/*resyncPanelBaseline=*/false);
     overlayPageStored = false;
     renderer.displayBuffer(HalDisplay::FAST_REFRESH);
+    if (section && !automaticPageTurnActive) READING_STATS.readingPageVisible(section->currentPage, currentSpineIndex);
     return;
   }
   discardOverlayPage();

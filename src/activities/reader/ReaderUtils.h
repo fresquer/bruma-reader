@@ -420,9 +420,9 @@ inline bool handleBackNavigation(const MappedInputManager& mappedInput, Activity
 
   const bool longPress = mappedInput.getHeldTime() >= GO_BACK_OR_HOME_MS;
   if (longPress != SETTINGS.backShortToFileBrowser) {
-    activityManager.goToFileBrowser(filePath);
+    if (!activityManager.returnToLibrary()) activityManager.goToFileBrowser(filePath);
   } else {
-    goHome.fn(goHome.ctx);
+    if (!activityManager.returnToLibrary()) goHome.fn(goHome.ctx);
   }
   return true;
 }

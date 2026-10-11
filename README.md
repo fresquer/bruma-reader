@@ -30,7 +30,6 @@ Some of the main additions include:
 - Sync Day support for reliable offline day-based statistics on hardware without a trustworthy sleep RTC
 - per-book statistics tools, including reading-time correction, start-date editing, and per-book stats reset
 - StarDict dictionary support from the SD card, with selectable monolingual and translation dictionaries, per-language folders, reader word lookup, suggestions, and lookup history
-- offline Flashcards with CSV decks, multiple study modes, recents, stats, and session summaries
 - unified EPUB Highlights for selected text and saved pages, with a global Highlights app and backward-compatible bookmark storage
 - repagination-resistant EPUB page marks and highlights, stored with visible-text anchors in BookmarkStore v5 while retaining v1-v4 migration
 - highlight matching that survives layout-inserted hyphens, split ellipses, and non-breaking-space fragments without confusing authored hyphens
@@ -230,34 +229,6 @@ SD:/
       Lexend_18.cpfont
 ```
 
-## Flashcards study modes
-
-`Flashcards` currently offers four review modes:
-
-- `Due`: builds a finite session from cards that are due first, then fills with unseen cards if needed. `Session size` is respected here, and `All` means "all due cards plus unseen cards".
-- `Scheduled`: builds a finite shuffled session from the whole deck. `Session size` is respected here, and `All` means the whole deck.
-- `Infinite`: ignores `Session size`, keeps drawing cards from the whole deck, and never finishes on its own. Exit manually when you want the session summary.
-- `Sequential`: uses every card in CSV order, ignores `Session size`, and finishes after the last card.
-
-Why it is split this way:
-
-- `Study mode` decides **which cards** enter the session
-- `Session size` decides **how many** of those cards are included
-
-`Fail` and `Next` send the current card back through the session flow. In `Infinite`, the queue is rebuilt again when a full pass is consumed, so practice can continue indefinitely. In `Sequential`, the deck is kept in file order.
-
-Example CSV deck structure:
-
-```csv
-front,back
-"What is the capital of France?","Paris"
-"Who wrote Don Quixote?","Miguel de Cervantes"
-"What is 12 x 12?","144"
-```
-
-Sample deck ready to copy to the SD card:
-- [flashcards_sample.csv](./flashcards_sample.csv)
-
 `CPR-vCodex` is a reading-focused firmware fork for the **Xteink X4**, built on top of the stable **CrossPoint Reader** baseline and extended with analytics, reader utilities, branding cleanup, extra UI features, and carefully selected upstream carry-forwards.
 
 The official `crosspoint-reader` project is treated as the stable reference. `vcodex` only carries forward upstream work when it is useful on the X4 and safe enough to keep the reader fast and reliable.
@@ -283,7 +254,6 @@ This project is **not affiliated with Xteink**.
 - KOReader Sync compatibility improvements, including Calibre-Web-Automated `/kosync` support
 - configurable OPDS download filename format: `Author - Title` or `Title - Author`
 - configurable `Home` and `Apps` shortcuts
-- `Flashcards` with offline CSV decks, session summary, recents, stats and settings
 - `Text Darkness`, `Bionic Reading`, `Reader Refresh Mode`, downloadable `Lexend`, `X Small`
 - `Sleep` tools with directory selection, preview, cache, sequential and shuffle behavior
 - `Dark Mode (Experimental)`
@@ -356,7 +326,6 @@ That is enough to start using the core `vcodex` additions: coherent day-based an
 | `Reading Day` | one-day drill-down from the heatmap | [Reading analytics suite](#reading-analytics-suite) |
 | `Reading Profile` | weekly reading behavior summary | [Reading analytics suite](#reading-analytics-suite) |
 | `Achievements` | console-style milestones and optional popups | [Achievements](#achievements) |
-| `Flashcards` | offline deck study with `Scheduled` and `Infinite` session modes | [Flashcards](#flashcards) |
 | `Sync Day` | manual Wi-Fi date sync and fallback-day logic | [Sync Day and date model](#sync-day-and-date-model) |
 | `Home + Apps shortcuts` | configurable placement, visibility, ordering, and a fallback to `Lyra vCodex` for removed/unknown themes | [Home and Apps](#home-and-apps) |
 | `SD card fonts` | download, upload, or manually install extra `.cpfont` families from the SD card | [Settings](#settings) |
@@ -501,7 +470,6 @@ It includes compact help pages for:
 - `Sync Day`
 - `Reading Stats`
 - `Bookmarks`
-- `Flashcards`
 - `Sleep`
 - `Customize Home and Apps`
 - `Achievements`
@@ -550,37 +518,6 @@ The text-selection and on-page highlighting behavior is adapted from
 commit [`b4d0ee1`](https://github.com/uxjulia/CrossInk/commit/b4d0ee190480fb3c9a175f09daab9dede3ca467a)
 and incorporating relevant later robustness fixes through
 [`ffda6de`](https://github.com/uxjulia/CrossInk/commit/ffda6de71554a53f60b861ef08ad6770426b4ac5).
-
-## Flashcards
-
-`Flashcards` is an offline study app built around CSV decks on the SD card.
-
-Main sections:
-
-- `Open`
-- `Recents`
-- `Statistics`
-- `Settings`
-
-Deck flow:
-
-- open a CSV deck from the SD card
-- study in landscape using `Flip`, `Next`, `Success` and `Fail`
-- leave the deck through the page buttons when you want to finish
-- get a session summary when you exit
-
-Study modes:
-
-- `Due`: finite review-oriented session, using due cards first and unseen cards second
-- `Scheduled`: finite shuffled session from the whole deck
-- `Infinite`: endless practice, ignores `Session size`
-- `Sequential`: whole deck in CSV order, ignores `Session size`
-
-Statistics:
-
-- each deck keeps its own seen / unseen / due / mastered metrics
-- `Statistics` lists known decks
-- holding `Select` on a deck inside `Statistics` lets you reset that deck's flashcard stats after confirmation
 
 ## Sleep
 

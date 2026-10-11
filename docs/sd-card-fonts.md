@@ -6,23 +6,36 @@ provides vCodex-specific additions such as ChareInk and Lexend.
 
 ## Installing Fonts
 
-There are three ways to install fonts.
+There are four ways to install fonts.
 
-### Option 1: Download from device
+### Option 1: Install a file from the SD card
+
+1. Copy a compatible `.cpfont` file anywhere on the SD card.
+2. Open **Settings > Reader > Install font from file** and browse to it.
+3. Select the file. The reader validates and copies it into the font family's directory.
+4. Select the installed family under **Settings > Reader > Font Family**.
+
+The filename must be `Family_size.cpfont`, for example `Lexend_14.cpfont`.
+You can also open a `.cpfont` file directly in **Browse Files**. The original
+file is preserved. Replacing an installed size requires confirmation; other
+sizes in that family stay installed. This works offline and does not convert
+TTF/OTF fonts.
+
+### Option 2: Download from device
 
 1. Connect your CPR-vCodex reader to Wi-Fi
 2. Go to **Settings > Reader > Manage Fonts**
 3. Browse available font families and tap to download
 4. Downloaded fonts appear immediately in **Settings > Reader > Font Family**
 
-### Option 2: Upload via web browser
+### Option 3: Upload via web browser
 
 1. On your CPR-vCodex reader, start **File Transfer** and connect through **Join Network** or **Create Hotspot**
 2. Open the web interface URL shown on the reader
 3. Navigate to the **Fonts** tab
 4. Upload `.cpfont` files using the upload form
 
-### Option 3: Manual SD card copy
+### Option 4: Manual SD card copy
 
 For the fastest full CPR-vCodex font install, download
 [`all-fonts.zip`](https://github.com/franssjz/cpr-vcodex/releases/download/sd-fonts-m1-b4/all-fonts.zip)

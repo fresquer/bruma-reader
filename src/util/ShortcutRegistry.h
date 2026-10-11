@@ -21,8 +21,8 @@ enum class ShortcutId {
   RecentBooks,
   Bookmarks,
   Favorites,
-  Flashcards,
-  Dictionary,
+  // Value 12 belonged to the retired flashcards app.
+  Dictionary = 13,
   FileTransfer,
   ScreenClean,
   Sleep,
@@ -40,8 +40,8 @@ struct ShortcutDefinition {
   uint8_t CrossPointSettings::* visiblePtr;
 };
 
-inline const std::array<ShortcutDefinition, 18>& getShortcutDefinitions() {
-  static const std::array<ShortcutDefinition, 18> definitions = {
+inline const std::array<ShortcutDefinition, 17>& getShortcutDefinitions() {
+  static const std::array<ShortcutDefinition, 17> definitions = {
       ShortcutDefinition{ShortcutId::Library, StrId::STR_LIBRARY, StrId::STR_LIBRARY_DESC, UIIcon::Library,
                          &CrossPointSettings::libraryShortcut, &CrossPointSettings::libraryShortcutOrder,
                          &CrossPointSettings::libraryShortcutVisible},
@@ -83,9 +83,6 @@ inline const std::array<ShortcutDefinition, 18>& getShortcutDefinitions() {
       ShortcutDefinition{ShortcutId::Favorites, StrId::STR_FAVORITES, StrId::STR_FAVORITES_APP_DESC, UIIcon::Heart,
                          &CrossPointSettings::favoritesShortcut, &CrossPointSettings::favoritesShortcutOrder,
                          &CrossPointSettings::favoritesShortcutVisible},
-      ShortcutDefinition{ShortcutId::Flashcards, StrId::STR_FLASHCARDS, StrId::STR_FLASHCARDS_APP_DESC, UIIcon::Text,
-                         &CrossPointSettings::flashcardsShortcut, &CrossPointSettings::flashcardsShortcutOrder,
-                         &CrossPointSettings::flashcardsShortcutVisible},
       ShortcutDefinition{ShortcutId::Dictionary, StrId::STR_DICTIONARY, StrId::STR_DICTIONARY_APP_DESC, UIIcon::Text,
                          &CrossPointSettings::dictionaryShortcut, &CrossPointSettings::dictionaryShortcutOrder,
                          &CrossPointSettings::dictionaryShortcutVisible},
@@ -187,9 +184,10 @@ inline std::vector<const ShortcutDefinition*> getConfiguredShortcuts(
       shortcuts.push_back(&definition);
     }
   }
-  std::stable_sort(shortcuts.begin(), shortcuts.end(), [](const ShortcutDefinition* lhs, const ShortcutDefinition* rhs) {
-    return getShortcutOrder(*lhs) < getShortcutOrder(*rhs);
-  });
+  std::stable_sort(shortcuts.begin(), shortcuts.end(),
+                   [](const ShortcutDefinition* lhs, const ShortcutDefinition* rhs) {
+                     return getShortcutOrder(*lhs) < getShortcutOrder(*rhs);
+                   });
   return shortcuts;
 }
 

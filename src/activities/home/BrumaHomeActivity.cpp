@@ -34,7 +34,6 @@
 #include "activities/apps/BookmarksAppActivity.h"
 #include "activities/apps/DictionaryActivity.h"
 #include "activities/apps/FavoritesAppActivity.h"
-#include "activities/apps/FlashcardsAppActivity.h"
 #include "activities/apps/IfFoundActivity.h"
 #include "activities/apps/ReadingHeatmapActivity.h"
 #include "activities/apps/ReadingProfileActivity.h"
@@ -427,13 +426,6 @@ void BrumaHomeActivity::activateSelection() {
                                requestUpdate();
                              });
       break;
-    case ShortcutId::Flashcards:
-      startActivityForResult(std::make_unique<FlashcardsAppActivity>(renderer, mappedInput),
-                             [this](const ActivityResult&) {
-                               reloadDashboard();
-                               requestUpdate();
-                             });
-      break;
     case ShortcutId::Dictionary:
       startActivityForResult(std::make_unique<DictionaryActivity>(renderer, mappedInput),
                              [this](const ActivityResult&) {
@@ -536,7 +528,8 @@ void BrumaHomeActivity::render(RenderLock&&) {
       const char* state = completed[i] ? tr(STR_HOME_COMPLETED) : tr(STR_IN_PROGRESS);
       const int sw = renderer.getTextWidth(SMALL_FONT_ID, state);
       text(SMALL_FONT_ID, l.recentX + l.recentWidth - 14 - sw, y + (l.landscape ? 22 : 31), state);
-      drawProgress(renderer, l.recentX + 14, y + l.rowHeight - (l.landscape ? 16 : 30), l.recentWidth - 28, progress[i]);
+      drawProgress(renderer, l.recentX + 14, y + l.rowHeight - (l.landscape ? 16 : 30), l.recentWidth - 28,
+                   progress[i]);
     }
     if (books <= 1) text(smallFontId, l.recentX, l.recentTop + 42, tr(STR_NO_RECENT_BOOKS));
     renderer.drawLine(l.x, l.statsTop - 12, l.x + l.width, l.statsTop - 12);

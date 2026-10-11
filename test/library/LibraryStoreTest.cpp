@@ -47,6 +47,7 @@ static void fresh() {
   std::filesystem::remove_all(LibraryFault::root);
   std::filesystem::create_directories(LibraryFault::root);
   LibraryFault::reset();
+  MemoryBudget::snapshotsBeforeLow = std::numeric_limits<size_t>::max();
   metadataReads = 0;
   MemoryBudget::freeHeap = MemoryBudget::maxAllocHeap = 1024 * 1024;
   JsonSettingsIO::loadRecentBooks(RECENT_BOOKS, "");
@@ -359,6 +360,50 @@ int main() {
     store.setFilter(Filter::All);
     assert(store.visibleCount() == 4);  // Empty view never loses the catalog.
     assert(!store.setReadingState("/absent.epub", State::Finished));
+  }
+  fresh();
+  {
+    put("/first.epub", "First");
+    put("/second.epub", "Second");
+    put("/third.epub", "Third");
+    LibraryStore store;
+    assert(scan(store) == LibraryStore::ScanState::Complete);
+    assert(LibraryStore::recordOpened("/first.epub"));
+    assert(LibraryStore::recordOpened("/second.epub"));
+    const auto original = bytes("/.crosspoint/library-open.bin");
+    const auto originalCatalog = bytes("/.crosspoint/library.bin");
+    for (size_t validReads : {size_t(0), size_t(3)}) {
+      LibraryFault::failRead = "library-open.bin";
+      LibraryFault::readsUntilFailure = validReads;
+      assert(!LibraryStore::recordOpened("/third.epub"));
+      assert(bytes("/.crosspoint/library-open.bin") == original);
+      assert(!Storage.exists("/.crosspoint/library-open.bin.bak"));
+      LibraryFault::readsUntilFailure = validReads;
+      assert(!store.load(LibraryStore::Order::LastRead));
+      assert(bytes("/.crosspoint/library-open.bin") == original);
+      assert(bytes("/.crosspoint/library.bin") == originalCatalog);
+      LibraryFault::reset();
+    }
+    LibraryFault::failOpen = "library-open.bin";
+    assert(!LibraryStore::recordOpened("/third.epub"));
+    assert(!store.load(LibraryStore::Order::LastRead));
+    assert(bytes("/.crosspoint/library-open.bin") == original);
+    LibraryFault::reset();
+    // Memory can become scarce after the initial gate, including after one
+    // valid event. That is not a torn append and must never rewrite history.
+    for (size_t checks : {size_t(1), size_t(2)}) {
+      MemoryBudget::snapshotsBeforeLow = checks;
+      assert(!LibraryStore::recordOpened("/third.epub"));
+      assert(bytes("/.crosspoint/library-open.bin") == original);
+      assert(!Storage.exists("/.crosspoint/library-open.bin.bak"));
+      MemoryBudget::snapshotsBeforeLow = std::numeric_limits<size_t>::max();
+    }
+    assert(store.load(LibraryStore::Order::LastRead));
+    assert(book(store, 0).path == "/second.epub");
+    assert(book(store, 1).path == "/first.epub");
+    assert(LibraryStore::recordOpened("/third.epub"));
+    assert(store.load(LibraryStore::Order::LastRead));
+    assert(book(store, 0).path == "/third.epub");
   }
   std::filesystem::remove_all(LibraryFault::root);
   std::cout << "Library catalog scenarios passed\n";

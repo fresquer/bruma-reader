@@ -32,7 +32,6 @@
 #include "activities/apps/BookmarksAppActivity.h"
 #include "activities/apps/DictionaryActivity.h"
 #include "activities/apps/FavoritesAppActivity.h"
-#include "activities/apps/FlashcardsAppActivity.h"
 #include "activities/apps/IfFoundActivity.h"
 #include "activities/apps/ReadingHeatmapActivity.h"
 #include "activities/apps/ReadingProfileActivity.h"
@@ -1266,10 +1265,6 @@ void HomeActivity::activateSelection() {
                                  reloadHomeBooks(metrics.homeRecentBooksCount);
                                  requestFreshHomeRender(true);
                                });
-        break;
-      case ShortcutId::Flashcards:
-        startActivityForResult(std::make_unique<FlashcardsAppActivity>(renderer, mappedInput),
-                               [this](const ActivityResult&) { requestFreshHomeRender(true); });
         break;
       case ShortcutId::Dictionary:
         startActivityForResult(std::make_unique<DictionaryActivity>(renderer, mappedInput),

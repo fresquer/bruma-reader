@@ -16,7 +16,7 @@ enum class BootStage : uint8_t {
   ReadingStats,
   RecentBooks,
   Favorites,
-  Flashcards,
+  RetiredFlashcards,  // Reserved for recovery records from older firmware.
   Achievements,
   RouteDecision,
   Completed,
@@ -40,7 +40,6 @@ bool shouldSkipState();
 bool shouldSkipReadingStats();
 bool shouldSkipRecentBooks();
 bool shouldSkipFavorites();
-bool shouldSkipFlashcards();
 bool shouldSkipAchievements();
 
 }  // namespace BootRecovery

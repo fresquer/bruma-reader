@@ -22,6 +22,7 @@
 #include "ClockSyncActivity.h"
 #include "CrossPointSettings.h"
 #include "FontDownloadActivity.h"
+#include "FontInstallActivity.h"
 #include "FontSelectionActivity.h"
 #include "KOReaderSettingsActivity.h"
 #include "KeyboardLayoutsActivity.h"
@@ -44,7 +45,6 @@
 #include "activities/apps/AchievementsActivity.h"
 #include "activities/apps/BookmarksAppActivity.h"
 #include "activities/apps/FavoritesAppActivity.h"
-#include "activities/apps/FlashcardsAppActivity.h"
 #include "activities/apps/IfFoundActivity.h"
 #include "activities/apps/ReadingHeatmapActivity.h"
 #include "activities/apps/ReadingProfileActivity.h"
@@ -203,6 +203,7 @@ std::vector<SettingInfo> buildReaderSettings(const SdCardFontRegistry* registry)
       // Upstream's tabbed Font / Size / Layout / Style screen with live preview.
       SettingInfo::Action(StrId::STR_TEXT_SETTINGS, SettingAction::TextSettings),
       SettingInfo::Action(StrId::STR_MANAGE_FONTS, SettingAction::DownloadFonts),
+      SettingInfo::Action(StrId::STR_INSTALL_FONT_FILE, SettingAction::InstallFontFile),
       // Font family opens the fork's picker (built-in + SD families), see runAction.
       SettingInfo::Enum(StrId::STR_FONT_FAMILY, &CrossPointSettings::fontFamily,
                         {StrId::STR_BOOKERLY, StrId::STR_NOTO_SANS}),
@@ -372,15 +373,6 @@ std::vector<SettingInfo> buildAppSettings() {
   v.push_back(SettingInfo::Action(StrId::STR_SLEEP, SettingAction::SleepApp));
   v.push_back(SettingInfo::Action(StrId::STR_IF_FOUND_RETURN_ME, SettingAction::IfFound));
 
-  v.push_back(SettingInfo::Section(StrId::STR_FLASHCARDS));
-  v.push_back(SettingInfo::Action(StrId::STR_FLASHCARDS, SettingAction::Flashcards));
-  v.push_back(
-      SettingInfo::Enum(StrId::STR_STUDY_MODE, &CrossPointSettings::flashcardStudyMode,
-                        {StrId::STR_DUE, StrId::STR_SCHEDULED, StrId::STR_RANDOM_PRACTICE, StrId::STR_SEQUENTIAL}));
-  v.push_back(
-      SettingInfo::Enum(StrId::STR_SESSION_SIZE, &CrossPointSettings::flashcardSessionSize,
-                        {StrId::STR_NUM_10, StrId::STR_NUM_20, StrId::STR_NUM_30, StrId::STR_NUM_50, StrId::STR_ALL}));
-
   v.push_back(SettingInfo::Section(StrId::STR_SHORTCUTS_SECTION));
   v.push_back(SettingInfo::Action(StrId::STR_SHORTCUT_LOCATION, SettingAction::ShortcutLocation));
   v.push_back(SettingInfo::Action(StrId::STR_SHORTCUT_VISIBILITY, SettingAction::ShortcutVisibility));
@@ -473,10 +465,6 @@ std::string getActionValueText(const SettingInfo& setting) {
     }
     case SettingAction::Achievements: {
       const auto* definition = findShortcutDefinition(ShortcutId::Achievements);
-      return definition ? ShortcutUiMetadata::getSubtitle(*definition) : "";
-    }
-    case SettingAction::Flashcards: {
-      const auto* definition = findShortcutDefinition(ShortcutId::Flashcards);
       return definition ? ShortcutUiMetadata::getSubtitle(*definition) : "";
     }
     case SettingAction::ScreenClean: {
@@ -892,6 +880,9 @@ void SettingsActivity::runAction(const SettingInfo& setting) {
     case SettingAction::Language:
       startActivityForResult(std::make_unique<LanguageSelectActivity>(renderer, mappedInput), rebuildingHandler);
       break;
+    case SettingAction::InstallFontFile:
+      startActivityForResult(std::make_unique<FontInstallActivity>(renderer, mappedInput), rebuildingHandler);
+      break;
     case SettingAction::DownloadFonts:
       startActivityForResult(std::make_unique<FontDownloadActivity>(renderer, mappedInput),
                              [this](const ActivityResult&) {
@@ -1037,9 +1028,6 @@ void SettingsActivity::runAction(const SettingInfo& setting) {
       break;
     case SettingAction::Favorites:
       startActivityForResult(std::make_unique<FavoritesAppActivity>(renderer, mappedInput), resultHandler);
-      break;
-    case SettingAction::Flashcards:
-      startActivityForResult(std::make_unique<FlashcardsAppActivity>(renderer, mappedInput), resultHandler);
       break;
     case SettingAction::ScreenClean:
       startActivityForResult(std::make_unique<ScreenCleanActivity>(renderer, mappedInput), resultHandler);

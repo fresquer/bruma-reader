@@ -3,11 +3,15 @@
 #include <FsHelpers.h>
 #include <HalStorage.h>
 #include <Logging.h>
+#include <Memory.h>
+#include <SdCardFont.h>
 
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 
 #include "CrossPointSettings.h"
+#include "util/CheckedFileCopy.h"
 
 FontInstaller::FontInstaller(SdCardFontRegistry& registry) : registry_(registry) {}
 
@@ -164,4 +168,73 @@ void FontInstaller::refreshRegistry() { registry_.discover(); }
 
 bool FontInstaller::isFamilyInstalled(const char* familyName) const {
   return registry_.findFamily(familyName) != nullptr;
+}
+
+FontInstaller::Error FontInstaller::installFromSd(const std::string& sourcePath, const bool replaceExisting) {
+  const size_t slash = sourcePath.find_last_of('/');
+  const std::string filename = sourcePath.substr(slash == std::string::npos ? 0 : slash + 1);
+  if (!isValidCpfontFilename(filename.c_str()) || filename.size() > 127) return Error::INVALID_FILE;
+  const size_t underscore = filename.find_last_of('_');
+  const size_t extension = filename.size() - 7;
+  if (underscore == std::string::npos || underscore == 0 || underscore + 1 >= extension) return Error::INVALID_FILE;
+  unsigned size = 0;
+  for (size_t i = underscore + 1; i < extension; ++i) {
+    if (!std::isdigit(static_cast<unsigned char>(filename[i]))) return Error::INVALID_FILE;
+    size = size * 10 + filename[i] - '0';
+    if (size > 255) return Error::INVALID_FILE;
+  }
+  if (size == 0) return Error::INVALID_FILE;
+  const std::string family = filename.substr(0, underscore);
+  if (family.size() >= sizeof(SETTINGS.sdFontFamilyName) || !isValidFamilyName(family.c_str()))
+    return Error::INVALID_FAMILY_NAME;
+  {
+    auto font = makeUniqueNoThrow<SdCardFont>();
+    if (!font || !font->load(sourcePath.c_str())) return Error::INVALID_FILE;
+  }
+  refreshRegistry();
+  if (!isFamilyInstalled(family.c_str()) && registry_.getFamilyCount() >= SdCardFontRegistry::MAX_SD_FAMILIES)
+    return Error::MAX_FAMILIES_REACHED;
+  char destination[256];
+  const std::string installedFilename = family + "_" + std::to_string(size) + ".cpfont";
+  buildFontPath(family.c_str(), installedFilename.c_str(), destination, sizeof(destination));
+  if (sourcePath == destination) return Error::OK;
+  const bool existing = Storage.exists(destination);
+  if (existing && !replaceExisting) return Error::FILE_EXISTS;
+  if (!ensureFamilyDir(family.c_str())) return Error::SD_WRITE_ERROR;
+  const std::string temporary = std::string(destination) + ".importing";
+  const std::string backup = std::string(destination) + ".backup";
+  // Never discard a previous interrupted replacement's recoverable backup.
+  if (Storage.exists(backup.c_str())) return Error::SD_WRITE_ERROR;
+  auto buffer = makeUniqueNoThrow<uint8_t[]>(4096);
+  if (!buffer) return Error::SD_WRITE_ERROR;
+  HalFile source, target;
+  if (!Storage.openFileForRead("FONT", sourcePath.c_str(), source) ||
+      !Storage.openFileForWrite("FONT", temporary.c_str(), target))
+    return Error::SD_WRITE_ERROR;
+  const size_t expected = source.size();
+  const bool copied = checkedFileCopy(source, target, expected, buffer.get(), 4096, [] { yield(); });
+  if (!copied) {
+    Storage.remove(temporary.c_str());
+    return Error::SD_WRITE_ERROR;
+  }
+  {
+    auto font = makeUniqueNoThrow<SdCardFont>();
+    if (!font || !font->load(temporary.c_str())) {
+      Storage.remove(temporary.c_str());
+      return Error::INVALID_FILE;
+    }
+  }
+  if (existing && !Storage.rename(destination, backup.c_str())) {
+    Storage.remove(temporary.c_str());
+    return Error::SD_WRITE_ERROR;
+  }
+  if (!Storage.rename(temporary.c_str(), destination)) {
+    if (existing) Storage.rename(backup.c_str(), destination);
+    Storage.remove(temporary.c_str());
+    return Error::SD_WRITE_ERROR;
+  }
+  if (existing) Storage.remove(backup.c_str());
+  refreshRegistry();
+  LOG_DBG("FONT", "Installed SD font: %s", destination);
+  return Error::OK;
 }

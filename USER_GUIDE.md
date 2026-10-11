@@ -604,12 +604,13 @@ To use custom sleep images, set the sleep screen mode to **Custom**, **Cover + C
 
 CPR-vCodex supports loading additional fonts from the SD card, extending beyond the two built-in families (Bookerly, Noto Sans). Custom fonts can include extended Unicode coverage, enabling CJK (Chinese, Japanese, Korean), Hebrew, Arabic, Greek, and other scripts. vCodex-specific families such as ChareInk and Lexend are published as CPR-vCodex SD font releases.
 
-There are four ways to install fonts:
+There are five ways to install fonts:
 
-1. **Download from device (recommended):** Go to **Settings -> Reader -> Manage Fonts**, browse the available font families, and select one to download over Wi-Fi.
-2. **Upload via web interface:** While in **File Transfer** mode, open the web UI in a browser and navigate to the **Fonts** tab to upload `.cpfont` files.
-3. **Manual SD card copy:** Download font files from the [CPR-vCodex SD font release](https://github.com/franssjz/cpr-vcodex/releases/tag/sd-fonts-m1-b4) (or the [crosspoint-fonts repository](https://github.com/crosspoint-reader/crosspoint-fonts)) and copy them to `/.fonts/` (preferred) or `/fonts/` on your SD card.
-4. **USB Drive (X4 Pro):** Start **File Transfer -> USB Drive** and copy the font folders onto the card from your computer.
+1. **Install a file from the SD card:** Go to **Settings -> Reader -> Install font from file**, browse to a `.cpfont` file, and select it. You can also open `.cpfont` files from **Browse Files**. The file must use the `Family_size.cpfont` naming convention (for example, `Lexend_14.cpfont`). The original is kept, and replacing an installed file requires confirmation.
+2. **Download from device (recommended):** Go to **Settings -> Reader -> Manage Fonts**, browse the available font families, and select one to download over Wi-Fi.
+3. **Upload via web interface:** While in **File Transfer** mode, open the web UI in a browser and navigate to the **Fonts** tab to upload `.cpfont` files.
+4. **Manual SD card copy:** Download font files from the [CPR-vCodex SD font release](https://github.com/franssjz/cpr-vcodex/releases/tag/sd-fonts-m1-b4) (or the [crosspoint-fonts repository](https://github.com/crosspoint-reader/crosspoint-fonts)) and copy them to `/.fonts/` (preferred) or `/fonts/` on your SD card.
+5. **USB Drive (X4 Pro):** Start **File Transfer -> USB Drive** and copy the font folders onto the card from your computer.
 
 Once installed, custom fonts appear in **Settings → Reader → Font Family** alongside the built-in fonts.
 

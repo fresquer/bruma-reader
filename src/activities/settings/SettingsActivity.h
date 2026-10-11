@@ -23,6 +23,7 @@ enum class SettingAction {
   SdFirmwareUpdate,
   Language,
   DownloadFonts,
+  InstallFontFile,
   TextSettings,
   KeyboardLayouts,
   // Fork: Apps tab
@@ -45,7 +46,6 @@ enum class SettingAction {
   OrderAppsShortcuts,
   Bookmarks,
   Favorites,
-  Flashcards,
   ScreenClean,
   SleepApp,
   IfFound,

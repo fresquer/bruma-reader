@@ -29,7 +29,6 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "FavoritesStore.h"
-#include "FlashcardsStore.h"
 #include "KOReaderCredentialStore.h"
 #include "MappedInputManager.h"
 #include "OpdsServerStore.h"
@@ -625,7 +624,6 @@ void setup() {
   const bool skipReadingStatsLoad = manualSafeBoot || BootRecovery::shouldSkipReadingStats();
   const bool skipRecentBooksLoad = manualSafeBoot || BootRecovery::shouldSkipRecentBooks();
   const bool skipFavoritesLoad = manualSafeBoot || BootRecovery::shouldSkipFavorites();
-  const bool skipFlashcardsLoad = manualSafeBoot || BootRecovery::shouldSkipFlashcards();
   const bool skipAchievementsLoad = manualSafeBoot || BootRecovery::shouldSkipAchievements();
   const bool forceHomeBoot = manualSafeBoot || BootRecovery::shouldForceHome();
   const bool otaBoot = isSilentReboot && snapshotTarget == SILENT_REBOOT_TARGET_OTA && !forceHomeBoot &&
@@ -727,13 +725,6 @@ void setup() {
   } else {
     BootRecovery::enterStage(BootRecovery::BootStage::Favorites);
     FAVORITES.loadFromFile();
-  }
-
-  if (skipFlashcardsLoad) {
-    logSkip("Skipping flashcards load due to recovery mode");
-  } else {
-    BootRecovery::enterStage(BootRecovery::BootStage::Flashcards);
-    FLASHCARDS.loadFromFile();
   }
 
   if (skipAchievementsLoad) {

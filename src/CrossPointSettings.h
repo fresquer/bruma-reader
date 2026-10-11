@@ -265,6 +265,7 @@ class CrossPointSettings {
     READING_STATS_AUTOBACKUP_21_DAYS = 4,
     READING_STATS_AUTOBACKUP_COUNT
   };
+  // Retired flashcards preferences: retained solely for saved-settings compatibility.
   enum FLASHCARD_STUDY_MODE {
     FLASHCARD_STUDY_DUE = 0,
     FLASHCARD_STUDY_SCHEDULED = 1,

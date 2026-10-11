@@ -727,7 +727,9 @@ bool loadSettingsDirect(CrossPointSettings& s, const JsonDocument& doc, bool* ne
       clamp(doc["achievementPopups"] | s.achievementPopups, static_cast<uint8_t>(2), s.achievementPopups);
 
   const uint8_t shortcutLocationCount = S::SHORTCUT_LOCATION_COUNT;
-  const uint8_t shortcutOrderCount = static_cast<uint8_t>(getShortcutDefinitions().size() + 1);
+  // Preserve historical indices when routes are retired; loading must not
+  // reset a user's order. Explicit reordering may compact the active routes.
+  const uint8_t shortcutOrderCount = static_cast<uint8_t>(std::max<size_t>(19, getShortcutDefinitions().size() + 1));
   s.libraryShortcut = clamp(doc["libraryShortcut"] | s.libraryShortcut, shortcutLocationCount, s.libraryShortcut);
   s.libraryShortcutOrder =
       clamp(doc["libraryShortcutOrder"] | s.libraryShortcutOrder, shortcutOrderCount, s.libraryShortcutOrder);

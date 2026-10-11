@@ -15,6 +15,7 @@ class FontInstaller {
     INVALID_FILE,
     SD_WRITE_ERROR,
     MAX_FAMILIES_REACHED,
+    FILE_EXISTS,
   };
 
   explicit FontInstaller(SdCardFontRegistry& registry);
@@ -50,6 +51,11 @@ class FontInstaller {
 
   /// Check whether a family name already exists in the registry.
   bool isFamilyInstalled(const char* familyName) const;
+
+  /// Copy a prepared Family_size.cpfont from anywhere on the SD card.
+  /// Validate with the reader's loader, stage the copy, then atomically replace
+  /// the destination (only when explicitly requested). Never remove the source.
+  Error installFromSd(const std::string& sourcePath, bool replaceExisting = false);
 
  private:
   SdCardFontRegistry& registry_;

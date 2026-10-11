@@ -57,15 +57,18 @@ bool writeHeader(HalFile& file, uint32_t count, uint32_t batch, uint32_t sequenc
   return file.seek(0) && writeExact(file, data, sizeof(data));
 }
 
-bool readRecord(HalFile& file, LibraryStore::Book& book) {
+bool readRecord(HalFile& file, LibraryStore::Book& book, bool* resourceFailure = nullptr) {
+  if (resourceFailure) *resourceFailure = false;
   uint32_t data[10];
   if (!readExact(file, data, sizeof(data))) return false;
   if (!data[0] || data[0] > MAX_PATH || data[1] > MAX_TITLE || data[2] > MAX_AUTHOR) return false;
   const size_t length = data[0] + data[1] + data[2];
   if (file.position() > file.size() || length + 4 > file.size() - file.position()) return false;
   if (!MemoryBudget::hasHeap(MemoryBudget::snapshot(), static_cast<uint32_t>(length + 16 * 1024),
-                             std::max({data[0], data[1], data[2]}) * 2 + 32))
+                             std::max({data[0], data[1], data[2]}) * 2 + 32)) {
+    if (resourceFailure) *resourceFailure = true;
     return false;
+  }
   book.path.resize(data[0]);
   book.title.resize(data[1]);
   book.author.resize(data[2]);
@@ -176,7 +179,7 @@ bool rotate(const char* main, const char* backup, const char* temp) {
   if (hadMain) Storage.rename(backup, main);
   return false;
 }
-bool stateReadError(HalFile& file) {
+bool journalReadError(HalFile& file) {
 #ifdef SIMULATOR
   (void)file;
   return errno != 0;
@@ -184,7 +187,7 @@ bool stateReadError(HalFile& file) {
   return file.readError();
 #endif
 }
-void clearStateReadError() {
+void clearJournalReadError() {
 #ifdef SIMULATOR
   errno = 0;
 #endif
@@ -208,14 +211,15 @@ bool appendState(const std::string& path, LibraryStore::ReadingState state, bool
   LibraryStore::Book event;
   size_t valid = 0;
   auto last = LibraryStore::ReadingState::Automatic;
-  clearStateReadError();
+  bool resourceFailure = false;
+  clearJournalReadError();
   while (file && file.position() < file.size()) {
-    if (!readRecord(file, event)) break;
+    if (!readRecord(file, event, &resourceFailure)) break;
     if (!stateRecord(event)) return false;
     valid = file.position();
     if (event.path == path) last = static_cast<LibraryStore::ReadingState>(event.opened);
   }
-  if (file && stateReadError(file)) return false;
+  if (resourceFailure || (file && journalReadError(file))) return false;
   if (last == state || (clearOnlyPending && last != LibraryStore::ReadingState::Pending)) return true;
   if (file && (valid != file.size() || strcmp(source, STATES))) {
     auto clean = Storage.open(STATES_TEMP, O_WRONLY | O_CREAT | O_TRUNC);
@@ -390,16 +394,17 @@ bool LibraryStore::applyReadingStates() {
   auto file = Storage.open(path);
   if (!file) return !Storage.exists(path);
   Book event;
-  clearStateReadError();
+  bool resourceFailure = false;
+  clearJournalReadError();
   // Resolve the latest override first; Automatic restores the resolver's base.
   while (file.position() < file.size()) {
-    if (!readRecord(file, event)) break;
+    if (!readRecord(file, event, &resourceFailure)) break;
     if (!stateRecord(event)) return false;
     const int i = findPath(event.path);
     if (readFailed) return false;
     if (i >= 0) records[i].manualState = static_cast<ReadingState>(event.opened);
   }
-  if (stateReadError(file)) return false;
+  if (resourceFailure || journalReadError(file)) return false;
   return true;
 }
 bool LibraryStore::setReadingState(const std::string& path, ReadingState state) {
@@ -492,14 +497,16 @@ bool LibraryStore::applyHistory() {
   auto file = Storage.open(path);
   if (!file) return !Storage.exists(path);
   Book event;
+  bool resourceFailure = false;
+  clearJournalReadError();
   while (file.position() < file.size()) {
-    if (!readRecord(file, event)) break;  // incomplete final append: keep the valid prefix
+    if (!readRecord(file, event, &resourceFailure)) break;  // incomplete final append: keep the valid prefix
     sequence = std::max(sequence, event.opened);
     const int i = findPath(event.path);
     if (readFailed) return false;
     if (i >= 0) records[i].opened = std::max(records[i].opened, event.opened);
   }
-  return true;
+  return !resourceFailure && !journalReadError(file);
 }
 bool LibraryStore::recordOpened(const std::string& path) {
   if (path.empty() || path.size() > MAX_PATH || !heapAvailable() || !Storage.ensureDirectoryExists("/.crosspoint"))
@@ -515,13 +522,17 @@ bool LibraryStore::recordOpened(const std::string& path) {
   main = HalFile();
   const char* source = Storage.exists(HISTORY) ? HISTORY : "/.crosspoint/library-open.bin.bak";
   auto file = Storage.open(source);
+  if (!file && Storage.exists(source)) return false;
   Book event;
   size_t valid = 0;
+  bool resourceFailure = false;
+  clearJournalReadError();
   while (file && file.position() < file.size()) {
-    if (!readRecord(file, event)) break;
+    if (!readRecord(file, event, &resourceFailure)) break;
     valid = file.position();
     sequence = std::max(sequence, event.opened);
   }
+  if (resourceFailure || (file && journalReadError(file))) return false;
   const bool repair = file && (valid != file.size() || strcmp(source, HISTORY));
   if (repair) {
     auto clean = Storage.open("/.crosspoint/library-open.bin.tmp", O_WRONLY | O_CREAT | O_TRUNC);

@@ -30,9 +30,7 @@ RTC_NOINIT_ATTR uint8_t recordedStageRaw = static_cast<uint8_t>(BootRecovery::Bo
 uint32_t recoveryMask = 0;
 bool recoveryActive = false;
 
-bool isValidStage(const uint8_t raw) {
-  return raw <= static_cast<uint8_t>(BootRecovery::BootStage::Completed);
-}
+bool isValidStage(const uint8_t raw) { return raw <= static_cast<uint8_t>(BootRecovery::BootStage::Completed); }
 
 uint32_t getSkipMaskForStage(const BootRecovery::BootStage stage) {
   using Stage = BootRecovery::BootStage;
@@ -57,7 +55,7 @@ uint32_t getSkipMaskForStage(const BootRecovery::BootStage stage) {
       return SKIP_RECENT_BOOKS | FORCE_HOME;
     case Stage::Favorites:
       return SKIP_FAVORITES | FORCE_HOME;
-    case Stage::Flashcards:
+    case Stage::RetiredFlashcards:
       return SKIP_FLASHCARDS | FORCE_HOME;
     case Stage::Achievements:
       return SKIP_ACHIEVEMENTS | FORCE_HOME;
@@ -221,7 +219,7 @@ const char* getStageName(const BootStage stage) {
       return "recentBooks";
     case BootStage::Favorites:
       return "favorites";
-    case BootStage::Flashcards:
+    case BootStage::RetiredFlashcards:
       return "flashcards";
     case BootStage::Achievements:
       return "achievements";
@@ -244,7 +242,6 @@ bool shouldSkipState() { return hasMask(SKIP_STATE); }
 bool shouldSkipReadingStats() { return hasMask(SKIP_READING_STATS); }
 bool shouldSkipRecentBooks() { return hasMask(SKIP_RECENT_BOOKS); }
 bool shouldSkipFavorites() { return hasMask(SKIP_FAVORITES); }
-bool shouldSkipFlashcards() { return hasMask(SKIP_FLASHCARDS); }
 bool shouldSkipAchievements() { return hasMask(SKIP_ACHIEVEMENTS); }
 
 }  // namespace BootRecovery

@@ -255,9 +255,10 @@ constexpr StrId OPT_SLEEP_FILTER[] = {StrId::STR_NONE_OPT, StrId::STR_FILTER_CON
 constexpr StrId OPT_HIDE_BATTERY[] = {StrId::STR_NEVER, StrId::STR_IN_READER, StrId::STR_ALWAYS};
 constexpr StrId OPT_REFRESH_FREQ[] = {StrId::STR_PAGES_1, StrId::STR_PAGES_5, StrId::STR_PAGES_10, StrId::STR_PAGES_15,
                                       StrId::STR_PAGES_30};
-constexpr StrId OPT_UI_THEME[] = {StrId::STR_THEME_LYRA, StrId::STR_THEME_LYRA_CUSTOM, StrId::STR_THEME_LYRA_CAROUSEL,
-                                   StrId::STR_THEME_CLASSIC, StrId::STR_THEME_ROUNDEDRAFF, StrId::STR_THEME_LYRA_EXTENDED,
-                                   StrId::STR_THEME_BRUMA};
+constexpr StrId OPT_UI_THEME[] = {StrId::STR_THEME_LYRA,          StrId::STR_THEME_LYRA_CUSTOM,
+                                  StrId::STR_THEME_LYRA_CAROUSEL, StrId::STR_THEME_CLASSIC,
+                                  StrId::STR_THEME_ROUNDEDRAFF,   StrId::STR_THEME_LYRA_EXTENDED,
+                                  StrId::STR_THEME_BRUMA};
 static_assert(sizeof(OPT_UI_THEME) / sizeof(OPT_UI_THEME[0]) == CrossPointSettings::UI_THEME_COUNT);
 constexpr StrId OPT_FONT_FAMILY[] = {StrId::STR_BOOKERLY, StrId::STR_NOTO_SANS};
 constexpr StrId OPT_LINE_SPACING[] = {StrId::STR_TIGHT, StrId::STR_NORMAL, StrId::STR_WIDE, StrId::STR_EXTRA_WIDE};
@@ -286,10 +287,6 @@ constexpr StrId OPT_DATE_FORMAT[] = {StrId::STR_DATE_FORMAT_DD_MM_YYYY, StrId::S
 constexpr StrId OPT_DAILY_GOAL[] = {StrId::STR_MIN_15, StrId::STR_MIN_30, StrId::STR_MIN_45, StrId::STR_MIN_60};
 constexpr StrId OPT_STATS_AUTOBACKUP[] = {StrId::STR_STATE_OFF, StrId::STR_NUM_1, StrId::STR_NUM_7, StrId::STR_NUM_14,
                                           StrId::STR_NUM_21};
-constexpr StrId OPT_STUDY_MODE[] = {StrId::STR_DUE, StrId::STR_SCHEDULED, StrId::STR_RANDOM_PRACTICE,
-                                    StrId::STR_SEQUENTIAL};
-constexpr StrId OPT_SESSION_SIZE[] = {StrId::STR_NUM_10, StrId::STR_NUM_20, StrId::STR_NUM_30, StrId::STR_NUM_50,
-                                      StrId::STR_ALL};
 constexpr StrId OPT_HOME_BOOK_SOURCE[] = {StrId::STR_RECENTS, StrId::STR_FAVORITES};
 constexpr StrId OPT_SHORTCUT_LOCATION[] = {StrId::STR_HOME_LOCATION, StrId::STR_APPS};
 constexpr StrId OPT_KO_MATCH[] = {StrId::STR_FILENAME, StrId::STR_BINARY};
@@ -392,8 +389,6 @@ constexpr WebSettingDef WEB_SETTINGS[] = {
     WEB_ENUM(StrId::STR_DAILY_GOAL, dailyGoalTarget, OPT_DAILY_GOAL, "dailyGoalTarget", StrId::STR_APPS),
     WEB_ENUM(StrId::STR_READING_STATS_AUTOBACKUP, readingStatsAutoBackup, OPT_STATS_AUTOBACKUP,
              "readingStatsAutoBackup", StrId::STR_APPS),
-    WEB_ENUM(StrId::STR_STUDY_MODE, flashcardStudyMode, OPT_STUDY_MODE, "flashcardStudyMode", StrId::STR_APPS),
-    WEB_ENUM(StrId::STR_SESSION_SIZE, flashcardSessionSize, OPT_SESSION_SIZE, "flashcardSessionSize", StrId::STR_APPS),
     WEB_TOGGLE(StrId::STR_SHOW_AFTER_READING, showStatsAfterReading, "showStatsAfterReading", StrId::STR_APPS),
     WEB_TOGGLE(StrId::STR_MOVE_COMPLETED_BOOKS, moveCompletedBooks, "moveCompletedBooks", StrId::STR_APPS),
     WEB_TOGGLE(StrId::STR_ENABLE_ACHIEVEMENTS, achievementsEnabled, "achievementsEnabled", StrId::STR_APPS),
@@ -420,8 +415,6 @@ constexpr WebSettingDef WEB_SETTINGS[] = {
     WEB_ENUM(StrId::STR_HIGHLIGHTS, bookmarksShortcut, OPT_SHORTCUT_LOCATION, "bookmarksShortcut",
              StrId::STR_SHORTCUTS_SECTION),
     WEB_ENUM(StrId::STR_FAVORITES, favoritesShortcut, OPT_SHORTCUT_LOCATION, "favoritesShortcut",
-             StrId::STR_SHORTCUTS_SECTION),
-    WEB_ENUM(StrId::STR_FLASHCARDS, flashcardsShortcut, OPT_SHORTCUT_LOCATION, "flashcardsShortcut",
              StrId::STR_SHORTCUTS_SECTION),
     WEB_ENUM(StrId::STR_FILE_TRANSFER, fileTransferShortcut, OPT_SHORTCUT_LOCATION, "fileTransferShortcut",
              StrId::STR_SHORTCUTS_SECTION),

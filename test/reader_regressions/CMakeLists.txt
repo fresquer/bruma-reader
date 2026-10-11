@@ -1,5 +1,6 @@
 add_executable(reader_regressions_test
   BookmarkStoreTest.cpp
+  CheckedFileCopyTest.cpp
   DictionaryFontSelectionTest.cpp
   DitherAllocationTest.cpp
   FsHelpersCaseTest.cpp

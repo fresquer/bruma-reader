@@ -10,7 +10,6 @@
 #include "CrossPointSettings.h"
 #include "DictionaryActivity.h"
 #include "FavoritesAppActivity.h"
-#include "FlashcardsAppActivity.h"
 #include "IfFoundActivity.h"
 #include "OpdsServerStore.h"
 #include "ReadingHeatmapActivity.h"
@@ -182,9 +181,6 @@ void AppsActivity::openApp(const int index) {
       break;
     case ShortcutId::Favorites:
       activity = std::make_unique<FavoritesAppActivity>(renderer, mappedInput);
-      break;
-    case ShortcutId::Flashcards:
-      activity = std::make_unique<FlashcardsAppActivity>(renderer, mappedInput);
       break;
     case ShortcutId::Dictionary:
       activity = std::make_unique<DictionaryActivity>(renderer, mappedInput);

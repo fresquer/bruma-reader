@@ -11,9 +11,10 @@
 #include <utility>
 
 namespace LibraryFault {
-inline std::string root, failRead, failWrite, failRename, failDirectory, missingTimestamp;
+inline std::string root, failRead, failWrite, failRename, failDirectory, failOpen, missingTimestamp;
 inline size_t readsUntilFailure = SIZE_MAX;
 inline void reset() {
+  failOpen.clear();
   failRead.clear();
   failWrite.clear();
   failRename.clear();
@@ -111,6 +112,7 @@ class HalStorage {
   std::string resolve(const char* path) const { return LibraryFault::root + path; }
   HalFile open(const char* logical, int flags = O_RDONLY) const {
     HalFile file;
+    if (!LibraryFault::failOpen.empty() && std::string(logical).ends_with(LibraryFault::failOpen)) return file;
     file.path = resolve(logical);
     struct stat s{};
     if (::stat(file.path.c_str(), &s) == 0 && S_ISDIR(s.st_mode))

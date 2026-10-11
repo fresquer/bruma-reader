@@ -734,6 +734,7 @@ bool loadSettingsDirect(CrossPointSettings& s, const JsonDocument& doc, bool* ne
   s.libraryShortcutVisible = clamp(doc["libraryShortcutVisible"] | s.libraryShortcutVisible, static_cast<uint8_t>(2),
                                    s.libraryShortcutVisible);
   s.libraryOrder = clamp(doc["libraryOrder"] | s.libraryOrder, static_cast<uint8_t>(4), s.libraryOrder);
+  s.libraryFilter = clamp(doc["libraryFilter"] | s.libraryFilter, static_cast<uint8_t>(4), s.libraryFilter);
   s.appsHubShortcutOrder =
       clamp(doc["appsHubShortcutOrder"] | s.appsHubShortcutOrder, shortcutOrderCount, s.appsHubShortcutOrder);
   s.browseFilesShortcut =
@@ -1126,6 +1127,7 @@ bool JsonSettingsIO::saveSettings(const CrossPointSettings& s, const char* path)
   doc["libraryShortcutOrder"] = s.libraryShortcutOrder;
   doc["libraryShortcutVisible"] = s.libraryShortcutVisible;
   doc["libraryOrder"] = s.libraryOrder;
+  doc["libraryFilter"] = s.libraryFilter;
   doc["browseFilesShortcut"] = s.browseFilesShortcut;
   doc["browseFilesShortcutOrder"] = s.browseFilesShortcutOrder;
   doc["syncDayShortcut"] = s.syncDayShortcut;

@@ -18,6 +18,7 @@
 #include "AchievementsStore.h"
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
+#include "LibraryStore.h"
 #include "MappedInputManager.h"
 #include "ProgressFile.h"
 #include "ReaderUtils.h"
@@ -76,6 +77,7 @@ uint8_t getChapterProgressForStats(Xtc& xtc, const uint32_t currentPage) {
 }
 
 void markStatsCompletedAtEnd(Xtc& xtc) {
+  LibraryStore::recordFinished(xtc.getPath());
   if (xtc.getPageCount() == 0) {
     READING_STATS.updateProgress(100, true, "", 100);
     return;

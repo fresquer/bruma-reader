@@ -136,3 +136,15 @@ checks old settings, hidden time and both XTC overlay positions. Logs and BMP
 screenshots stay in `.codex-build/reading-time-qa/`; the personal `fs_/` SD is
 not modified. The existing `reader_regressions_test` includes the pure estimator
 tests for interval bounds, pauses, skips, counter wrap and rounding.
+
+### Library reading-state checks
+
+Build `simulator`, then run `python3 test/simulator/library_states.py`. Temporary
+fixtures cover automatic states, all four filters, manual completion/undo, empty
+views, persistence, and EPUB/TXT returns with the same filter. A Bruma Home run
+checks that actually finishing a book clears its manual override. Manual library
+state changes are also checked to leave progress, sessions and reading time intact.
+Screenshots/logs stay in `.codex-build/library-states-qa/`. The host
+`library_catalog_test` covers 501 filtered books using the same 10,240-byte index,
+plus failed writes, low memory, torn appends and backup recovery for the state
+journal. The catalog format stays v1; state overrides use a separate v1 journal.

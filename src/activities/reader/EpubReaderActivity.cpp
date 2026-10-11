@@ -35,6 +35,7 @@
 #include "HighlightTextMatcher.h"
 #include "KOReaderCredentialStore.h"
 #include "KOReaderSyncActivity.h"
+#include "LibraryStore.h"
 #include "MappedInputManager.h"
 #include "ProgressFile.h"
 #include "QrDisplayActivity.h"
@@ -124,6 +125,7 @@ bool releaseReaderSdFontCachesForLowMemory(const GfxRenderer& renderer, const ch
 }
 
 void markStatsCompletedAtEnd(Epub& epub, int spineIndex) {
+  LibraryStore::recordFinished(epub.getPath());
   const int spineCount = epub.getSpineItemsCount();
   if (spineCount <= 0) {
     READING_STATS.updateProgress(100, true, "", 100);

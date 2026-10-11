@@ -24,6 +24,9 @@ constexpr const char* MAIN = "/.crosspoint/library.bin";
 constexpr const char* BACKUP = "/.crosspoint/library.bin.bak";
 constexpr const char* TEMP = "/.crosspoint/library.bin.tmp";
 constexpr const char* HISTORY = "/.crosspoint/library-open.bin";
+constexpr const char* STATES = "/.crosspoint/library-state.bin";
+constexpr const char* STATES_BACKUP = "/.crosspoint/library-state.bin.bak";
+constexpr const char* STATES_TEMP = "/.crosspoint/library-state.bin.tmp";
 constexpr uint32_t MAGIC = 0x42524c42;  // BRLB, little endian on both targets
 constexpr uint32_t VERSION = 1;
 constexpr size_t HEADER_SIZE = 8 * sizeof(uint32_t);
@@ -173,6 +176,75 @@ bool rotate(const char* main, const char* backup, const char* temp) {
   if (hadMain) Storage.rename(backup, main);
   return false;
 }
+bool stateReadError(HalFile& file) {
+#ifdef SIMULATOR
+  (void)file;
+  return errno != 0;
+#else
+  return file.readError();
+#endif
+}
+void clearStateReadError() {
+#ifdef SIMULATOR
+  errno = 0;
+#endif
+}
+// State journal v1 reuses checked catalog records: added is the journal
+// version and opened is Automatic/Pending/Reading/Finished. A torn last append
+// leaves the previous state readable; repair publishes only the valid prefix.
+bool stateRecord(const LibraryStore::Book& event) {
+  return event.added == 1 && event.opened <= static_cast<uint32_t>(LibraryStore::ReadingState::Finished);
+}
+bool appendState(const std::string& path, LibraryStore::ReadingState state, bool clearOnlyPending = false) {
+  if (state == LibraryStore::ReadingState::Automatic && !Storage.exists(STATES) && !Storage.exists(STATES_BACKUP))
+    return true;
+  if (path.empty() || path.front() != '/' || path.size() > MAX_PATH || path.find('\0') != std::string::npos ||
+      state > LibraryStore::ReadingState::Finished || !heapAvailable() ||
+      !Storage.ensureDirectoryExists("/.crosspoint"))
+    return false;
+  const char* source = Storage.exists(STATES) ? STATES : STATES_BACKUP;
+  auto file = Storage.open(source);
+  if (!file && Storage.exists(source)) return false;
+  LibraryStore::Book event;
+  size_t valid = 0;
+  auto last = LibraryStore::ReadingState::Automatic;
+  clearStateReadError();
+  while (file && file.position() < file.size()) {
+    if (!readRecord(file, event)) break;
+    if (!stateRecord(event)) return false;
+    valid = file.position();
+    if (event.path == path) last = static_cast<LibraryStore::ReadingState>(event.opened);
+  }
+  if (file && stateReadError(file)) return false;
+  if (last == state || (clearOnlyPending && last != LibraryStore::ReadingState::Pending)) return true;
+  if (file && (valid != file.size() || strcmp(source, STATES))) {
+    auto clean = Storage.open(STATES_TEMP, O_WRONLY | O_CREAT | O_TRUNC);
+    if (!clean || !file.seek(0)) return false;
+    uint8_t buffer[128];
+    size_t remaining = valid;
+    while (remaining) {
+      const size_t n = std::min(remaining, sizeof(buffer));
+      if (!readExact(file, buffer, n) || !writeExact(clean, buffer, n)) return false;
+      remaining -= n;
+    }
+    clean.flush();
+    if (!clean.close()) return false;
+    file = HalFile();
+    if (!Storage.exists(STATES)) {
+      if (!Storage.rename(STATES_TEMP, STATES)) return false;
+    } else if (!rotate(STATES, STATES_BACKUP, STATES_TEMP))
+      return false;
+  }
+  file = HalFile();
+  event = LibraryStore::Book{};
+  event.path = path;
+  event.added = 1;
+  event.opened = static_cast<uint32_t>(state);
+  auto out = Storage.open(STATES, O_WRONLY | O_CREAT | O_APPEND);
+  if (!out || !writeRecord(out, event)) return false;
+  out.flush();
+  return out.close();
+}
 }  // namespace
 
 LibraryStore::~LibraryStore() { release(); }
@@ -261,7 +333,87 @@ bool LibraryStore::readBook(uint32_t index, Book& book) {
   if (index >= used || !readAt(records[index].offset, book)) return false;
   book.opened = records[index].opened;
   book.duplicate = records[index].duplicate;
+  book.readingState = records[index].readingState;
+  book.manualState = records[index].manualState != ReadingState::Automatic;
   return true;
+}
+bool LibraryStore::matches(const Index& entry) const {
+  return filtering == Filter::All || (filtering == Filter::Reading && entry.readingState == ReadingState::Reading) ||
+         (filtering == Filter::Pending && entry.readingState == ReadingState::Pending) ||
+         (filtering == Filter::Finished && entry.readingState == ReadingState::Finished);
+}
+uint32_t LibraryStore::visibleCount() const {
+  if (filtering == Filter::All) return used;
+  uint32_t count = 0;
+  for (uint32_t i = 0; i < used; ++i)
+    if (matches(records[i])) ++count;
+  return count;
+}
+bool LibraryStore::readVisibleBook(uint32_t index, Book& book) {
+  if (filtering == Filter::All) return readBook(index, book);
+  for (uint32_t i = 0; i < used; ++i) {
+    if (matches(records[i])) {
+      if (!index) return readBook(i, book);
+      --index;
+    }
+  }
+  return false;
+}
+int LibraryStore::findVisiblePath(const std::string& path) {
+  const int physical = findPath(path);
+  if (physical < 0 || !matches(records[physical])) return -1;
+  int visible = 0;
+  for (int i = 0; i < physical; ++i)
+    if (matches(records[i])) ++visible;
+  return visible;
+}
+bool LibraryStore::refreshReadingStates(StateResolver resolver, void* context) {
+  readFailed = false;
+  Book book;
+  for (uint32_t i = 0; i < used; ++i) {
+    if (!readBook(i, book)) return false;
+    records[i].automaticState = resolver      ? resolver(book, context)
+                                : book.opened ? ReadingState::Reading
+                                              : ReadingState::Pending;
+    if (records[i].automaticState < ReadingState::Pending || records[i].automaticState > ReadingState::Finished)
+      return false;
+    records[i].manualState = ReadingState::Automatic;
+  }
+  if (!applyReadingStates()) return false;
+  for (uint32_t i = 0; i < used; ++i)
+    records[i].readingState =
+        records[i].manualState != ReadingState::Automatic ? records[i].manualState : records[i].automaticState;
+  return true;
+}
+bool LibraryStore::applyReadingStates() {
+  const char* path = Storage.exists(STATES) ? STATES : STATES_BACKUP;
+  auto file = Storage.open(path);
+  if (!file) return !Storage.exists(path);
+  Book event;
+  clearStateReadError();
+  // Resolve the latest override first; Automatic restores the resolver's base.
+  while (file.position() < file.size()) {
+    if (!readRecord(file, event)) break;
+    if (!stateRecord(event)) return false;
+    const int i = findPath(event.path);
+    if (readFailed) return false;
+    if (i >= 0) records[i].manualState = static_cast<ReadingState>(event.opened);
+  }
+  if (stateReadError(file)) return false;
+  return true;
+}
+bool LibraryStore::setReadingState(const std::string& path, ReadingState state) {
+  if (state < ReadingState::Pending || state > ReadingState::Finished) return false;
+  const int i = findPath(path);
+  if (i < 0 || !appendState(path, state)) return false;
+  records[i].manualState = records[i].readingState = state;
+  return true;
+}
+bool LibraryStore::recordFinished(const std::string& path) {
+  if (!Storage.exists(STATES) && !Storage.exists(STATES_BACKUP)) return true;
+  const bool ok = appendState(path, ReadingState::Automatic);
+  if (!ok) LOG_ERR("LIB", "Could not clear finished-book state override");
+  return ok;
 }
 int LibraryStore::findPath(const std::string& path) {
   const auto hash = pathHash(path);
@@ -398,7 +550,10 @@ bool LibraryStore::recordOpened(const std::string& path) {
   auto out = Storage.open(HISTORY, O_WRONLY | O_CREAT | O_APPEND);
   if (!out || !writeRecord(out, event)) return false;
   out.flush();
-  return out.close();
+  const bool saved = out.close();
+  if (saved && !appendState(path, ReadingState::Automatic, true))
+    LOG_ERR("LIB", "Could not clear pending-book override");
+  return saved;
 }
 
 bool LibraryStore::beginScan() {

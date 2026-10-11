@@ -16,6 +16,7 @@
 #include "AchievementsStore.h"
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
+#include "LibraryStore.h"
 #include "MappedInputManager.h"
 #include "ProgressFile.h"
 #include "ReaderUtils.h"
@@ -359,6 +360,7 @@ void TxtReaderActivity::clearEndOfBookOptionsIfNeeded() {
 }
 
 void TxtReaderActivity::finishBookAndExit() {
+  if (txt) LibraryStore::recordFinished(txt->getPath());
   READING_STATS.noteActivity();
   READING_STATS.updateProgress(100, true, "", 100);
   exitReaderAfterOptionalCompletedMove();
@@ -372,6 +374,7 @@ bool TxtReaderActivity::handleEndOfBookMenu() {
   std::string openPath;
   switch (endOfBookOptions->handleMenuInput(mappedInput, &openPath)) {
     case EndOfBookOptions::Action::OpenBook:
+      if (txt) LibraryStore::recordFinished(txt->getPath());
       READING_STATS.updateProgress(100, true, "", 100);
       moveCompletedBookIfEnabled();
       activityManager.goToReader(openPath);
@@ -827,6 +830,7 @@ void TxtReaderActivity::render(RenderLock&&) {
   if (currentPage > totalPages) currentPage = totalPages;
 
   if (isAtEndOfBook()) {
+    LibraryStore::recordFinished(txt->getPath());
     READING_STATS.updateProgress(100, true, "", 100);
     renderEndOfBook();
     return;

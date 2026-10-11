@@ -66,6 +66,19 @@ static LibraryStore::Book book(LibraryStore& store, unsigned i) {
   return b;
 }
 
+using State = LibraryStore::ReadingState;
+using Filter = LibraryStore::Filter;
+static std::map<std::string, State> states;
+static State resolveState(const LibraryStore::Book& book, void*) {
+  const auto it = states.find(book.path);
+  return it != states.end() ? it->second : book.opened ? State::Reading : State::Pending;
+}
+static LibraryStore::Book visibleBook(LibraryStore& store, unsigned i) {
+  LibraryStore::Book b;
+  assert(store.readVisibleBook(i, b));
+  return b;
+}
+
 int main() {
   LibraryFault::root =
       (std::filesystem::temp_directory_path() /
@@ -235,8 +248,117 @@ int main() {
     for (unsigned i = 0; i < store.count(); ++i)
       if (book(store, i).duplicate) ++duplicates;
     assert(duplicates == 2);
+    assert(store.refreshReadingStates([](const LibraryStore::Book& b, void*) {
+      const auto number = std::stoi(b.title.substr(5));
+      return static_cast<LibraryStore::ReadingState>(1 + number % 3);
+    }));
+    for (int filter = 1; filter < 4; ++filter) {
+      store.setFilter(static_cast<LibraryStore::Filter>(filter));
+      assert(store.visibleCount() == 167);
+      LibraryStore::Book last;
+      assert(store.readVisibleBook(166, last));
+      assert(!store.readVisibleBook(167, last));
+      assert(store.indexBytes() == 512 * 20);
+    }
+    store.setFilter(LibraryStore::Filter::All);
+    assert(store.visibleCount() == 501);
     for (int i = 0; i < 4; ++i) assert(store.setOrder(static_cast<LibraryStore::Order>(i)));
     std::cout << "501 books: " << store.indexBytes() << " bytes of catalog index\n";
+  }
+  fresh();
+  {
+    put("/a.epub", "Alpha|Author");
+    put("/b.epub", "Beta|Author");
+    put("/c.epub", "Gamma|Author");
+    put("/copy.epub", "Alpha|Author");
+    LibraryStore store;
+    assert(scan(store) == LibraryStore::ScanState::Complete);
+    assert(LibraryStore::recordOpened("/a.epub"));
+    assert(store.load(LibraryStore::Order::Title));
+    states = {{"/c.epub", State::Finished}};
+    assert(store.refreshReadingStates(resolveState));
+    const auto indexBytes = store.indexBytes();
+    const auto catalog = bytes("/.crosspoint/library.bin");
+    store.setFilter(Filter::All);
+    assert(store.visibleCount() == 4);
+    store.setFilter(Filter::Reading);
+    assert(store.visibleCount() == 1 && visibleBook(store, 0).path == "/a.epub");
+    assert(store.findVisiblePath("/a.epub") == 0);
+    assert(store.findVisiblePath("/b.epub") == -1);
+    store.setFilter(Filter::Pending);
+    assert(store.visibleCount() == 2);  // An unopened copy has its own state.
+    for (int order = 0; order < 4; ++order) {
+      assert(store.setOrder(static_cast<LibraryStore::Order>(order)));
+      assert(store.visibleCount() == 2);
+      assert(visibleBook(store, 0).readingState == State::Pending);
+    }
+    store.setFilter(Filter::Finished);
+    assert(store.visibleCount() == 1 && visibleBook(store, 0).path == "/c.epub");
+    assert(store.setReadingState("/b.epub", State::Finished));
+    assert(store.visibleCount() == 2);
+    assert(bytes("/.crosspoint/library.bin") == catalog);
+    assert(store.indexBytes() == indexBytes);
+    assert(store.load(LibraryStore::Order::Title));
+    assert(store.refreshReadingStates(resolveState));
+    store.setFilter(Filter::Finished);
+    assert(store.visibleCount() == 2 && visibleBook(store, 0).manualState);
+    assert(store.setReadingState("/b.epub", State::Pending));
+    store.setFilter(Filter::Pending);
+    assert(store.visibleCount() == 2);
+    assert(LibraryStore::recordOpened("/b.epub"));  // Pending -> Reading automatically on open.
+    assert(store.load(LibraryStore::Order::Title));
+    assert(store.refreshReadingStates(resolveState));
+    store.setFilter(Filter::Reading);
+    assert(store.visibleCount() == 2);
+    assert(store.setReadingState("/c.epub", State::Reading));  // Undo completion without changing progress/stats.
+    assert(store.visibleCount() == 3);
+    assert(LibraryStore::recordFinished("/c.epub"));
+    assert(store.refreshReadingStates(resolveState));
+    store.setFilter(Filter::Finished);
+    assert(store.visibleCount() == 1 && !visibleBook(store, 0).manualState);
+    // Incomplete append retains the last complete state and is repaired on retry.
+    assert(store.setReadingState("/b.epub", State::Finished));
+    std::ofstream(LibraryFault::root + "/.crosspoint/library-state.bin", std::ios::app) << "torn";
+    assert(store.refreshReadingStates(resolveState));
+    assert(store.visibleCount() == 2);
+    assert(store.setReadingState("/b.epub", State::Reading));
+    assert(store.refreshReadingStates(resolveState));
+    assert(store.visibleCount() == 1);
+    // Failed writes and IO reads cannot change the current in-memory state or trim history.
+    const auto saved = bytes("/.crosspoint/library-state.bin");
+    LibraryFault::failWrite = "library-state.bin";
+    assert(!store.setReadingState("/b.epub", State::Finished));
+    assert(bytes("/.crosspoint/library-state.bin") == saved);
+    LibraryFault::reset();
+    LibraryFault::failRead = "library-state.bin";
+    LibraryFault::readsUntilFailure = 0;
+    assert(!store.setReadingState("/b.epub", State::Finished));
+    assert(bytes("/.crosspoint/library-state.bin") == saved);
+    LibraryFault::reset();
+    assert(store.refreshReadingStates(resolveState));
+    MemoryBudget::freeHeap = 16000;
+    assert(!store.setReadingState("/b.epub", State::Finished));
+    assert(bytes("/.crosspoint/library-state.bin") == saved);
+    MemoryBudget::freeHeap = 1024 * 1024;
+    // A recovered backup remains usable after a crash between renames.
+    std::filesystem::rename(LibraryFault::root + "/.crosspoint/library-state.bin",
+                            LibraryFault::root + "/.crosspoint/library-state.bin.bak.recovered");
+    std::filesystem::remove(LibraryFault::root + "/.crosspoint/library-state.bin.bak");
+    std::filesystem::rename(LibraryFault::root + "/.crosspoint/library-state.bin.bak.recovered",
+                            LibraryFault::root + "/.crosspoint/library-state.bin.bak");
+    assert(store.refreshReadingStates(resolveState));
+    assert(store.setReadingState("/b.epub", State::Finished));
+    assert(store.refreshReadingStates(resolveState));
+    assert(store.visibleCount() == 2);
+    assert(scan(store) == LibraryStore::ScanState::Complete);
+    assert(store.refreshReadingStates(resolveState));
+    assert(store.visibleCount() == 2);  // Manual states survive catalog refresh.
+    assert(store.setReadingState("/b.epub", State::Reading));
+    assert(store.setReadingState("/c.epub", State::Reading));
+    assert(store.visibleCount() == 0);
+    store.setFilter(Filter::All);
+    assert(store.visibleCount() == 4);  // Empty view never loses the catalog.
+    assert(!store.setReadingState("/absent.epub", State::Finished));
   }
   std::filesystem::remove_all(LibraryFault::root);
   std::cout << "Library catalog scenarios passed\n";

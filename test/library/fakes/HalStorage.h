@@ -82,10 +82,15 @@ class HalFile {
   bool seek(size_t p) { return ::lseek(fd, p, SEEK_SET) >= 0; }
   int read(void* bytes, size_t count) {
     if (!LibraryFault::failRead.empty() && path.ends_with(LibraryFault::failRead)) {
-      if (!LibraryFault::readsUntilFailure) return -1;
+      if (!LibraryFault::readsUntilFailure) {
+        error = true;
+        return -1;
+      }
       --LibraryFault::readsUntilFailure;
     }
-    return static_cast<int>(::read(fd, bytes, count));
+    const auto result = ::read(fd, bytes, count);
+    if (result < 0) error = true;
+    return static_cast<int>(result);
   }
   size_t write(const void* bytes, size_t count) {
     if (!LibraryFault::failWrite.empty() && path.ends_with(LibraryFault::failWrite)) return 0;

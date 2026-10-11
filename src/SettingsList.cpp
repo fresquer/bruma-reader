@@ -368,6 +368,10 @@ std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* registry) {
         SettingInfo::Enum(StrId::STR_LIBRARY_ORDER, &CrossPointSettings::libraryOrder,
                           {StrId::STR_TITLE, StrId::STR_AUTHOR, StrId::STR_LIBRARY_LAST_READ, StrId::STR_LIBRARY_ADDED},
                           "libraryOrder", StrId::STR_APPS),
+        SettingInfo::Enum(StrId::STR_LIBRARY_FILTER, &CrossPointSettings::libraryFilter,
+                          {StrId::STR_LIBRARY_ALL, StrId::STR_LIBRARY_READING, StrId::STR_LIBRARY_PENDING,
+                           StrId::STR_LIBRARY_FINISHED},
+                          "libraryFilter", StrId::STR_APPS),
         // --- Shortcuts (web-only launcher placement) ---
         SettingInfo::Enum(StrId::STR_LIBRARY, &CrossPointSettings::libraryShortcut,
                           {StrId::STR_HOME_LOCATION, StrId::STR_APPS}, "libraryShortcut", StrId::STR_SHORTCUTS_SECTION),

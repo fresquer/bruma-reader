@@ -11,12 +11,16 @@
 class LibraryStore {
  public:
   enum class Order : uint8_t { Title, Author, LastRead, Added };
+  enum class Filter : uint8_t { All, Reading, Pending, Finished };
+  enum class ReadingState : uint8_t { Automatic, Pending, Reading, Finished };
   enum class ScanState : uint8_t { Idle, Scanning, Publishing, Complete, Failed, Cancelled };
   struct Book {
     std::string path, title, author;
     uint64_t size = 0, modified = 0;
     uint32_t added = 0, opened = 0;
     bool duplicate = false;
+    ReadingState readingState = ReadingState::Pending;
+    bool manualState = false;
   };
   LibraryStore() = default;
   ~LibraryStore();
@@ -25,6 +29,15 @@ class LibraryStore {
   uint32_t count() const { return used; }
   bool exists() const { return loaded; }
   bool readBook(uint32_t index, Book& book);
+  using StateResolver = ReadingState (*)(const Book&, void*);
+  bool refreshReadingStates(StateResolver resolver, void* context = nullptr);
+  void setFilter(Filter filter) { filtering = filter; }
+  uint32_t visibleCount() const;
+  bool readVisibleBook(uint32_t index, Book& book);
+  int findVisiblePath(const std::string& path);
+  bool setReadingState(const std::string& path, ReadingState state);
+  // Clear a manual override only when the reader actually finishes the book.
+  static bool recordFinished(const std::string& path);
   bool setOrder(Order order);
   int findPath(const std::string& path);
   bool beginScan();
@@ -39,6 +52,9 @@ class LibraryStore {
   struct Index {
     uint32_t offset, hash, added, opened;
     bool duplicate;
+    ReadingState readingState = ReadingState::Pending;
+    ReadingState manualState = ReadingState::Automatic;
+    ReadingState automaticState = ReadingState::Pending;
   };
   struct Directory {
     HalFile file;
@@ -49,6 +65,7 @@ class LibraryStore {
   uint32_t used = 0, capacity = 0, batch = 0, sequence = 0;
   bool loaded = false, readFailed = false;
   Order ordering = Order::Title;
+  Filter filtering = Filter::All;
   ScanState state = ScanState::Idle;
   HalFile catalog, output, sourceCheck;
   std::unique_ptr<Book> pendingBook;
@@ -63,5 +80,7 @@ class LibraryStore {
   bool applyHistory();
   bool markDuplicates();
   bool publish();
+  bool matches(const Index& entry) const;
+  bool applyReadingStates();
   ScanState fail();
 };

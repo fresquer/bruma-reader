@@ -466,6 +466,7 @@ class CrossPointSettings {
   uint8_t libraryShortcutOrder = 0;
   uint8_t libraryShortcutVisible = 1;
   uint8_t libraryOrder = 0;
+  uint8_t libraryFilter = 0;  // All, Reading, Pending, Finished; initially All
   uint8_t browseFilesShortcut = SHORTCUT_APPS;
   uint8_t browseFilesShortcutOrder = 0;
   // Legacy Stats shortcut fields retained for settings.json migration to readingStatsShortcut.

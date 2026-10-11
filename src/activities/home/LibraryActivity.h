@@ -22,7 +22,10 @@ class LibraryActivity final : public UiListActivity {
   LibraryStore::Book books[WINDOW];
   std::string subtitles[WINDOW];
   freeink::ui::ListItem rows[WINDOW];
-  freeink::ui::ListItem menuRows[5];
+  freeink::ui::ListItem menuRows[10];
+  std::string menuBookPath, menuBookTitle;
+  bool menuBookFinished = false;
+  char heading[96] = {};
   int windowStart = -1, windowCount = 0;
   bool menu = false, scanning = false, restore;
   StrId notice = StrId::STR_NONE_OPT;
@@ -37,11 +40,14 @@ class LibraryActivity final : public UiListActivity {
   void onRowLongPress(int) override { showMenu(); }
   bool handleCustomInput() override;
   bool handleButtons() override;
-  const char* headerTitle() const override { return tr(STR_LIBRARY); }
+  const char* headerTitle() const override { return heading[0] ? heading : tr(STR_LIBRARY); }
   void drawFooter() override;
   void refreshWindow(int start, int visible);
   void clearWindow();
   void showMenu();
+  bool refreshReadingView();
+  void refreshEmptyNotice();
+  bool menuAvailable() const;
   void beginUpdate();
   void finishUpdate(LibraryStore::ScanState state);
 };

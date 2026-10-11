@@ -822,8 +822,7 @@ to the same selected book, including after an optional reading statistics summar
 Files that have been moved are new library entries on the next update; existing
 reader progress and identity handling continue to use the normal firmware logic.
 
-There is no text search, cover grid, reading-status filter or file management in
-this initial Library version. The SD catalog is under `/.crosspoint/`; it keeps a
+There is no text search, cover grid or file management in this Library version. The SD catalog is under `/.crosspoint/`; it keeps a
 versioned current generation and a recoverable previous generation. Unchanged
 files reuse their metadata using size and modification time. Files without a
 usable modification date are re-inspected. The catalog uses a small in-memory
@@ -847,3 +846,23 @@ y XTC sin capítulos, la opción Capítulo representa el documento completo.
 
 La estimación utiliza las páginas que quedan después de la actual. No cambia
 el tiempo leído de las estadísticas ni el ritmo del giro automático.
+
+### Estados y filtros de Biblioteca
+
+Mantén Confirmar un segundo en Biblioteca para elegir **Todos**, **Leyendo**,
+**Pendientes** o **Terminados**. El filtro se recuerda junto con el orden; el
+valor inicial es Todos. El encabezado indica la vista y cada libro muestra su
+estado. Si la vista está vacía, **Cambiar filtro** abre el menú sin escanear la SD.
+
+Los libros abiertos o con progreso aparecen en Leyendo; los todavía no abiertos
+ni empezados, en Pendientes. Los completados por el lector aparecen en Terminados.
+En el mismo menú puedes **Marcar como terminado** el libro seleccionado, o
+**Marcar sin terminar** para deshacerlo. Esta marca se guarda por ruta y se
+conserva al actualizar la biblioteca, sin mover archivos ni cambiar el progreso
+o el tiempo de las estadísticas. Dos copias pueden tener marcas diferentes.
+
+Un libro desmarcado vuelve a Leyendo si ya estaba empezado, o a Pendientes si
+no lo estaba. Abrir un pendiente lo devuelve al seguimiento automático; llegar
+al final del libro también restaura el estado automático. Las marcas manuales
+se guardan en `/.crosspoint/library-state.bin`, con recuperación del registro
+anterior si se interrumpe una escritura.

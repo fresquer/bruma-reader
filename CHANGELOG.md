@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0.39 — Bruma Reader preview 1
+
+| Version | Changes |
+|---|---|
+| `1.6.0.39` | - Add a unified SD library for EPUB, XTC, TXT and Markdown, with persistent sorting, reading states and filters.<br>- Add per-book learning and configurable remaining reading time in the status bar.<br>- Add the optional Bruma Home dashboard and offline installation of SD font files.<br>- Remove Flashcards while preserving other shortcut preferences.<br>- Preserve library journals on read failures or low memory, and validate font copies before replacement.<br>- Pass 291 host tests, X4 simulator scenarios and default/gh_release builds. Physical X4 validation remains pending; this is a preview build. |
+
 ## 1.6.0.38 — OTA and EPUB image fixes
 
 - Fix progressive JPEGs whose luminance and color components use separate

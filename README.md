@@ -72,6 +72,12 @@ Bruma retains features from its base, including:
 
 The [original CPR-vCodex documentation](README.cpr-vcodex.md) preserves its credits, technical history, and recovery notes. Its release and Auto Flash links belong to CPR-vCodex and do not necessarily include Bruma's additions.
 
+## Download a preview build
+
+[Bruma Reader — Preview 1](https://github.com/fresquer/bruma-reader/releases/tag/1.6.0.39-cpr-vcodex) provides the ESP32-C3 firmware binary, build metadata, and size-budget reports. This is a prerelease for testing; physical X4 validation is still pending.
+
+The packaged filename retains `cpr-vcodex` for compatibility. Download the `.bin` asset from this repository to get Bruma's additions. The inherited OTA and Auto Flash links still target CPR-vCodex; this preview is not promoted to those update channels.
+
 ## Compatibility and status
 
 Bruma development focuses on **Xteink X4 / ESP32-C3**. The base retains X3 panel support, but Bruma's additions require physical validation before that device can be considered tested.

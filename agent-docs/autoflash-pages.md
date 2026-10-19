@@ -86,8 +86,9 @@ python scripts/sync_autoflash_firmware.py --repo franssjz/cpr-vcodex
 The sync downloads `<tag>.bin`, applies the C3 size gate (1,000,000 through
 6,553,600 bytes), deletes any stale X4 Pro copy, regenerates the manifest and the
 `FALLBACK_RELEASE` block in `flash.html`, and rewrites the tag and download
-URLs in `README.md`, `docs/assets/site.js`, `docs/index.html`, and
-`docs/flash.html`. URL rewrites are suffix-aware so a removed X4 Pro URL can
+URLs in `README.md`, `docs/assets/site.js`, and `docs/flash.html`. The Bruma
+landing in `docs/index.html` has its own preview channel and is intentionally
+excluded from this rewrite. URL rewrites are suffix-aware so a removed X4 Pro URL can
 never be redirected to the C3 binary.
 
 After sync, validate:

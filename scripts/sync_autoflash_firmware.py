@@ -455,7 +455,9 @@ def sync_autoflash(repo: str, project_dir: Path, token: str | None, tag: str | N
     (firmware_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     c3 = images[C3_TARGET.key]
-    for relative in ("README.md", "docs/assets/site.js", "docs/index.html", "docs/flash.html"):
+    # The Bruma landing has its own preview channel. Keep its download links
+    # independent of the inherited Auto Flash release.
+    for relative in ("README.md", "docs/assets/site.js", "docs/flash.html"):
         update_text_file(project_dir / relative, tag, c3["downloadUrl"])
     update_flash_fallback(project_dir / "docs" / "flash.html", manifest)
 

@@ -1,217 +1,143 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CPR-vCodex Tools</title>
-  <link rel="stylesheet" href="assets/site.css">
-  <style>
-    :root {
-      color-scheme: light;
-      --accent: #B621B4;
-      --bg: #f7f7f8;
-      --surface: #ffffff;
-      --surface-2: #f1f1f4;
-      --text: #111118;
-      --muted: #666672;
-      --line: #e5e5e8;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    html[data-theme="dark"] {
-      color-scheme: dark;
-      --bg: #0f0f14;
-      --surface: #181820;
-      --surface-2: #22222b;
-      --text: #f4f4f6;
-      --muted: #aaa7b0;
-      --line: #30303a;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      min-height: 100vh;
-      margin: 0;
-      background: linear-gradient(180deg, var(--surface) 0, var(--bg) 360px);
-      color: var(--text);
-    }
-
-    main {
-      width: min(960px, calc(100vw - 32px));
-      margin: 0 auto;
-      padding: 54px 0 72px;
-    }
-
-    h1 {
-      margin: 0 0 12px;
-      font-size: clamp(34px, 5vw, 56px);
-      letter-spacing: 0;
-      line-height: 1;
-    }
-
-    p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .home-hero {
-      max-width: 780px;
-      margin: 0 0 28px;
-    }
-
-    .home-hero p {
-      max-width: 680px;
-      font-size: 18px;
-    }
-
-    .version {
-      display: inline-flex;
-      margin: 22px 0 0;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--accent) 10%, transparent);
-      color: var(--text);
-      padding: 6px 10px;
-      font-size: 13px;
-      font-weight: 750;
-    }
-
-    .action-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .action-card {
-      display: grid;
-      min-height: 174px;
-      align-content: space-between;
-      gap: 18px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--surface);
-      color: var(--text);
-      padding: 20px;
-      text-decoration: none;
-      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
-    }
-
-    .action-card:hover {
-      transform: translateY(-2px);
-      border-color: color-mix(in srgb, var(--accent) 54%, var(--line));
-      background: color-mix(in srgb, var(--accent) 7%, var(--surface));
-    }
-
-    .action-card.primary {
-      background: var(--accent);
-      color: #ffffff;
-    }
-
-    .action-card.primary p,
-    .action-card.primary .action-number {
-      color: rgba(255, 255, 255, 0.82);
-    }
-
-    .action-number {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 850;
-      letter-spacing: 0;
-    }
-
-    .action-card h2 {
-      margin: 0 0 8px;
-      font-size: 22px;
-      letter-spacing: 0;
-    }
-
-    .action-card p {
-      font-size: 15px;
-    }
-
-    @media (max-width: 720px) {
-      main {
-        padding: 34px 0 54px;
-      }
-
-      h1 {
-        font-size: 38px;
-      }
-
-      .home-hero p {
-        font-size: 16px;
-      }
-
-      .action-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <meta name="theme-color" content="#F7F3EA">
+  <meta name="description" content="Bruma Reader is a fork of CPR-vCodex for the Xteink X4. Bring your SD books together with a unified library, a new home screen, and reading time estimates.">
+  <meta property="og:title" content="Bruma Reader — Your books, brought together.">
+  <meta property="og:description" content="Reading firmware for the Xteink X4. A fork of CPR-vCodex, built on CrossPoint Reader.">
+  <meta property="og:type" content="website">
+  <title>Bruma Reader — Your books, brought together.</title>
+  <link rel="preload" href="assets/bruma/fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/bruma/fonts/cormorant-garamond-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/bruma/fonts/inter.css">
+  <link rel="stylesheet" href="assets/bruma/fonts/cormorant-garamond.css">
+  <link rel="stylesheet" href="assets/bruma/landing.css">
+  <script src="assets/bruma/landing.js" defer></script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="site-topbar">
-      <a class="site-brand" href="./" data-site-i18n="homeTitle">CPR-vCodex</a>
-      <nav class="site-nav" aria-label="Tools">
-        <a href="./" aria-current="page" data-site-i18n="navHome">Home</a>
-        <a href="./flash.html" data-site-i18n="navFlash">Auto Flash</a>
-        <a href="./tools.html" data-site-i18n="navTools">Tools</a>
-        <a href="https://github.com/franssjz/cpr-vcodex" data-site-i18n="navGithub">GitHub</a>
-        <a href="https://ko-fi.com/franssjz" data-site-i18n="navSupport">Support</a>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="header">
+    <div class="container header-inner">
+      <a class="wordmark" href="./" aria-label="Bruma Reader home">Bruma Reader</a>
+      <nav aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="https://github.com/fresquer/bruma-reader/blob/master/USER_GUIDE.md">Guide</a>
+        <a href="https://github.com/fresquer/bruma-reader">GitHub</a>
+        <a class="button button-small" href="#preview">Download<span class="nav-preview"> preview</span></a>
       </nav>
-      <div class="site-actions">
-        <button class="site-control icon-only" data-role="theme-toggle" type="button" aria-label="Dark mode" title="Dark mode"><span data-role="theme-icon"></span></button>
-        <select class="site-select" data-role="language-select" aria-label="Language"></select>
-      </div>
     </div>
   </header>
 
-  <main>
-    <section class="home-hero">
-      <h1 data-site-i18n="homeTitle">CPR-vCodex</h1>
-      <p data-site-i18n="homeSubtitle">Firmware and browser tools for CPR-vCodex on the Xteink X4 and X3. X4 Pro distribution is withdrawn.</p>
-      <div class="version" data-site-i18n="latestFirmware">Latest firmware: 1.6.0.38-cpr-vcodex</div>
+  <main id="main">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">A fork of <a href="https://github.com/franssjz/cpr-vcodex">CPR-vCodex</a></p>
+        <h1 id="hero-title">Bruma<br>Reader</h1>
+        <p class="hero-subtitle">Your books, brought together.</p>
+        <p class="hero-description">Reading firmware for the Xteink X4. A unified library, a new home screen, and time-left estimates — built on the tools you already know.</p>
+        <div class="actions">
+          <a class="button" href="https://github.com/fresquer/bruma-reader/releases/tag/1.6.0.39-cpr-vcodex">Download preview</a>
+          <a class="button button-outline" href="https://github.com/fresquer/bruma-reader/blob/master/USER_GUIDE.md">User guide</a>
+        </div>
+        <p class="hero-note">Xteink X4 <span aria-hidden="true">·</span> Preview build</p>
+      </div>
+      <figure class="hero-screen">
+        <a class="screen-link" href="assets/bruma/screens/home.png" data-screen="Bruma Home" aria-label="Enlarge the Bruma Home screenshot">
+          <img src="assets/bruma/screens/home.png" width="960" height="1600" fetchpriority="high" alt="Bruma Home in English: Treasure Island at 42%, recent reads, daily reading stats, Library and Apps.">
+        </a>
+        <figcaption>Bruma Home <span aria-hidden="true">·</span> Simulator capture</figcaption>
+      </figure>
     </section>
 
-    <section class="action-grid" aria-label="CPR-vCodex actions">
-      <a class="action-card primary" href="./flash.html">
-        <span class="action-number">01</span>
-        <div>
-          <h2 data-site-i18n="homeFlash">Auto Flash</h2>
-          <p data-site-i18n="homeFlashBody">Install the latest stable release from the browser.</p>
-        </div>
-      </a>
+    <div class="foundation">
+      <p class="container">Built on <a href="https://github.com/franssjz/cpr-vcodex">CPR-vCodex</a> and <a href="https://github.com/crosspoint-reader/crosspoint-reader">CrossPoint Reader</a>. Open source, with thanks to the original developers.</p>
+    </div>
 
-      <a class="action-card" href="./tools.html">
-        <span class="action-number">02</span>
-        <div>
-          <h2 data-site-i18n="homeTools">Tools</h2>
-          <p data-site-i18n="homeToolsBody">Open the reading stats editor and recommended Xteink utilities.</p>
-        </div>
-      </a>
+    <section class="screenshots container" id="screenshots" aria-labelledby="screenshots-title">
+      <div class="section-heading">
+        <h2 id="screenshots-title">See what changes.</h2>
+        <p>Real screens from the Bruma simulator. Select a screen for a closer look.</p>
+      </div>
+      <div class="screen-grid">
+        <figure>
+          <a class="screen-link" href="assets/bruma/screens/home.png" data-screen="Bruma Home" aria-label="Enlarge the Bruma Home screenshot">
+            <img src="assets/bruma/screens/home.png" width="960" height="1600" loading="lazy" decoding="async" alt="The optional Bruma Home theme with current book, recent reads and reading statistics, in English.">
+          </a>
+          <figcaption><h3>Bruma Home</h3><p>Your current book, recent reads and daily stats, together in an optional home theme.</p></figcaption>
+        </figure>
+        <figure>
+          <a class="screen-link" href="assets/bruma/screens/library.png" data-screen="Unified library" aria-label="Enlarge the unified library screenshot">
+            <img src="assets/bruma/screens/library.png" width="960" height="1600" loading="lazy" decoding="async" alt="Library in English listing Alice in Wonderland, Pride and Prejudice and Treasure Island, with authors and reading states.">
+          </a>
+          <figcaption><h3>Unified library</h3><p>Books from your SD folders in one list, with sorting, filters and reading states.</p></figcaption>
+        </figure>
+        <figure>
+          <a class="screen-link" href="assets/bruma/screens/reading.png" data-screen="Time left" aria-label="Enlarge the reading time screenshot">
+            <img src="assets/bruma/screens/reading.png" width="960" height="1600" loading="lazy" decoding="async" alt="An English sample reading page with a chapter time estimate in the footer.">
+          </a>
+          <figcaption><h3>Time left</h3><p>An estimate for your book or chapter, right in the reading status bar.</p></figcaption>
+        </figure>
+      </div>
+      <p class="capture-note">English interface, sample library. Captured in the X4 simulator; physical e-ink appearance may differ.</p>
+    </section>
 
-      <a class="action-card" href="https://github.com/franssjz/cpr-vcodex" target="_blank" rel="noopener noreferrer">
-        <span class="action-number">03</span>
-        <div>
-          <h2 data-site-i18n="homeGithub">GitHub</h2>
-          <p data-site-i18n="homeGithubBody">Review releases, issues and project source.</p>
+    <section class="features" id="features" aria-label="Bruma additions and inherited features">
+      <div class="container feature-columns">
+        <div class="feature-group">
+          <p class="eyebrow">New in Bruma</p>
+          <h2>A few thoughtful additions.</h2>
+          <dl>
+            <div><dt>Unified SD library</dt><dd>Browse EPUB, XTC, TXT and Markdown books from different folders in one list.</dd></div>
+            <div><dt>Sorting &amp; reading states</dt><dd>Sort by title, author or activity. Filter by progress and mark books as finished.</dd></div>
+            <div><dt>Book &amp; chapter time estimates</dt><dd>See time left based on your reading pace, or hide it when you prefer.</dd></div>
+            <div><dt>Optional Bruma Home</dt><dd>A new home screen for your current book, recent reads and existing reading stats.</dd></div>
+            <div><dt>Offline .cpfont installation</dt><dd>Install compatible font files directly from the SD card, without Wi-Fi.</dd></div>
+          </dl>
         </div>
-      </a>
+        <div class="feature-group inherited">
+          <p class="eyebrow">From <a href="https://github.com/franssjz/cpr-vcodex">CPR-vCodex</a></p>
+          <h2>A familiar foundation.</h2>
+          <dl>
+            <div><dt>Reading statistics, goals &amp; streaks</dt><dd>The inherited statistics engine, with heatmaps, sessions and achievements.</dd></div>
+            <div><dt>Dictionaries &amp; EPUB highlights</dt><dd>Look up words with SD-based StarDict dictionaries and keep highlights and page marks.</dd></div>
+            <div><dt>Themes, fonts &amp; sleep screens</dt><dd>Keep the existing themes, SD fonts, reading settings and custom sleep screens.</dd></div>
+            <div><dt>File transfer &amp; web settings</dt><dd>Manage your files and configure reading settings from your browser.</dd></div>
+            <div><dt>OPDS &amp; KOReader synchronization</dt><dd>Browse OPDS catalogs and synchronize reading progress with KOReader.</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
 
-      <a class="action-card" href="https://ko-fi.com/franssjz" target="_blank" rel="noopener noreferrer">
-        <span class="action-number">04</span>
-        <div>
-          <h2 data-site-i18n="navSupport">Support</h2>
-          <p data-site-i18n="homeSupportBody">Support CPR-vCodex development on Ko-fi.</p>
+    <section class="preview" id="preview" aria-labelledby="preview-title">
+      <div class="container preview-inner">
+        <div class="preview-copy">
+          <h2 id="preview-title">Try Bruma on your X4.</h2>
+          <p>Preview build. Physical device validation is pending.</p>
+          <p class="preview-details">Download the Bruma preview from this repository. Inherited OTA and Auto Flash links still target CPR-vCodex and do not include Bruma’s additions.</p>
         </div>
-      </a>
+        <div class="preview-actions">
+          <div class="actions">
+            <a class="button" href="https://github.com/fresquer/bruma-reader/releases/tag/1.6.0.39-cpr-vcodex">Download preview</a>
+            <a class="button button-outline" href="https://github.com/fresquer/bruma-reader/blob/master/README.md#download-a-preview-build">Release details</a>
+          </div>
+          <p class="hero-note">Xteink X4 <span aria-hidden="true">·</span> ESP32-C3</p>
+        </div>
+      </div>
     </section>
   </main>
 
-  <script src="assets/site.js"></script>
+  <footer class="footer container">
+    <div><a class="wordmark" href="./">Bruma Reader</a><p>A fork of <a href="https://github.com/franssjz/cpr-vcodex">CPR-vCodex</a>, built on <a href="https://github.com/crosspoint-reader/crosspoint-reader">CrossPoint Reader</a>.<br>MIT licensed. Not affiliated with Xteink.</p></div>
+    <nav aria-label="Project links"><a href="https://github.com/fresquer/bruma-reader">Source on GitHub</a><a href="https://github.com/fresquer/bruma-reader/issues">Report an issue</a><a href="https://github.com/fresquer/bruma-reader/blob/master/LICENSE">License</a></nav>
+  </footer>
+
+  <dialog class="screen-dialog" aria-labelledby="screen-dialog-title">
+    <div class="dialog-toolbar"><h2 id="screen-dialog-title">Bruma Home</h2><button class="button button-outline" type="button" data-close-dialog>Close</button></div>
+    <img class="dialog-image" width="960" height="1600" alt="">
+    <p class="dialog-note">X4 simulator capture <span aria-hidden="true">·</span> Press Escape to close</p>
+  </dialog>
 </body>
 </html>

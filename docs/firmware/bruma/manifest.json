@@ -1,14 +1,14 @@
 {
   "project": "bruma-reader",
   "channel": "preview",
-  "version": "1.6.0.39-cpr-vcodex",
-  "downloadUrl": "https://fresquer.github.io/bruma-reader/firmware/bruma/1.6.0.39-cpr-vcodex.bin",
-  "size": 6092288,
-  "sha256": "20367f298c07567f359579c85c4b763fdc6812c8cf168dbb00cf01611418f799",
+  "version": "1.6.0.40-cpr-vcodex",
+  "downloadUrl": "https://fresquer.github.io/bruma-reader/firmware/bruma/bruma-1.6.0.40.bin",
+  "size": 6091280,
+  "sha256": "7fe48d288f1bf8570772e12c726ba700fa53fd655dde46a85a4dfc0d5db0afc4",
   "source": {
     "repo": "fresquer/bruma-reader",
-    "tag": "1.6.0.39-cpr-vcodex",
-    "asset": "1.6.0.39-cpr-vcodex.bin",
-    "publishedAt": "2026-10-12T17:50:20Z"
+    "tag": "1.6.0.40-cpr-vcodex",
+    "asset": "bruma-1.6.0.40.bin",
+    "publishedAt": "2026-10-20T13:30:57Z"
   }
 }

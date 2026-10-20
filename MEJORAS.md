@@ -49,14 +49,14 @@ Pendientes recogidos durante la preparación de la landing, la instalación y el
 - **Resultado deseado:** reconocer el firmware de Bruma antes de instalarlo.
 - **Implementado el 20 de octubre de 2026:** descarga para SD `bruma-1.6.0.40.bin`, con Bruma delante y sin el sufijo CPR-vCodex. El empaquetador genera automáticamente `artifacts/bruma-<version>.bin` en las compilaciones C3.
 - **Compatibilidad:** mismos bytes, SHA-256 y versión interna `1.6.0.40`; el selector heredado acepta `.bin` y verifica el contenido, sin exigir el nombre vCodex. No cambia el actualizador del lector.
-- **Alcance:** nombre de descarga para SD. Los tags conservan su formato compatible; el asset público y la URL OTA usan el nombre Bruma; la marca de la interfaz se trata en BR-006. Publicación y prueba física siguen pendientes.
+- **Alcance:** nombre de descarga para SD. Los tags conservan su formato compatible; el asset público y la URL OTA usan el nombre Bruma; la marca de la interfaz se trata en BR-006. Publicado en preview 2; la prueba física sigue pendiente.
 
 ### BR-002 — Canal de actualización propio
 
 - **Problema:** los enlaces y el actualizador heredados apuntan a CPR-vCodex.
 - **Resultado deseado:** que el usuario pueda distinguir y obtener las actualizaciones de Bruma sin perder sus funciones por confusión de canal.
 - **Alcance implementado:** OTA de previews y estables publicadas en `fresquer/bruma-reader`, con manifiesto independiente en `docs/firmware/bruma/`, identidad de proyecto, manifiesto con certificado HTTPS verificado, tamaño, SHA-256 y validación de chip/placa. Respaldo del manifiesto por GitHub Raw; ningún respaldo a vCodex.
-- **Sincronización:** workflow manual separado que selecciona la versión completa más alta, verifica los assets publicados y copia el binario antes del manifiesto; conserva cada ruta por versión. El canal local se ha sembrado con la preview .39 realmente publicada y verificada.
+- **Sincronización:** workflow manual separado que selecciona la versión completa más alta, verifica los assets publicados y copia el binario antes del manifiesto; conserva cada ruta por versión. Se conservó la semilla .39 y se sincronizó la .40 desde la release publicada, verificando el binario.
 - **Transición:** instalar el primer candidato .40 desde SD; la preview .39 instalada conserva su OTA heredada. Publicar el canal y una futura versión superior antes de validar la OTA en el lector.
 - **Verificación local:** pruebas nativas de identidad, comparación de versiones, respaldo, integridad y fallos; regresiones del sincronizador y descarga real de la preview .39. No equivale a una OTA física de este candidato.
 
@@ -122,13 +122,13 @@ Pendientes recogidos durante la preparación de la landing, la instalación y el
 
 ## En curso
 
-Revisión y publicación de preview 2 autorizadas por el usuario. La instalación y validación física serán posteriores.
+Preview 2 publicada tras revisión y CI satisfactoria. El canal propio se ha sincronizado desde sus assets publicados. La instalación y validación física siguen pendientes.
 
 ## Hechas
 
 ### Preview 2 — 1.6.0.40 — 20 de octubre de 2026
 
-- **BR-002, BR-009 y BR-005:** completado el alcance inicial descrito arriba; publicación autorizada tras revisión.
+- **BR-002, BR-009 y BR-005:** completado el alcance inicial y publicado en [Bruma Reader — Preview 2](https://github.com/fresquer/bruma-reader/releases/tag/1.6.0.40-cpr-vcodex).
 - **Referencia:** cambios locales en OTA/manifiesto y sincronizador, LibraryActivity, ShortcutRegistry, AppsActivity, ActivityManager, ajustes y traducciones EN/ES. Detalles operativos en `agent-docs/bruma-update-channel.md`.
 - **Verificación:** pruebas nativas, simulador EN/ES, biblioteca de 506 libros y memoria reducida; 296 pruebas nativas aprobadas, compilaciones `default` y `gh_release` en dry-run y presupuesto del candidato registrados en la entrega local. Las 17 Apps regresan conservando selección y segunda página.
 - **Datos:** no se cambia el formato del catálogo, no se reinician ajustes ni preferencias y no se modifican bootloader, particiones ni eFuses.
@@ -151,3 +151,11 @@ Siguiente ID disponible: **BR-010**. No reutilizar IDs de mejoras terminadas o a
 - **Referencia al cambio y verificación:**
 - **Publicación:**
 ```
+
+## Publicación de preview 2 — 20 de octubre de 2026
+
+- Commit de firmware: `b11041f5`; sincronización del canal: `c34eea41`.
+- [Release](https://github.com/fresquer/bruma-reader/releases/tag/1.6.0.40-cpr-vcodex): prerelease, un único binario `bruma-1.6.0.40.bin` y tres metadatos/informes.
+- [CI](https://github.com/fresquer/bruma-reader/actions/runs/39428428390), [build de release](https://github.com/fresquer/bruma-reader/actions/runs/39428598132) y [sincronizador](https://github.com/fresquer/bruma-reader/actions/runs/39431125160): satisfactorios.
+- Binario publicado: 6.091.280 bytes de 6.553.600; margen 462.320 bytes. SHA-256: `7fe48d288f1bf8570772e12c726ba700fa53fd655dde46a85a4dfc0d5db0afc4`.
+- No se distribuye X4 Pro. La instalación física del nuevo firmware no se ha realizado.

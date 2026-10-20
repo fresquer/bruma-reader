@@ -45,3 +45,17 @@ installation guide rather than described as certificate-verified payload TLS.
 Keep this a prerelease. Install the transition from .39 via SD. Real Wi-Fi OTA
 requires a subsequent higher published Bruma version containing this updater.
 The inherited Auto Flash is separate and remains untouched.
+
+## Published result
+
+Firmware commit `b11041f5`; all CI jobs and release build passed. Preview 2
+contains exactly four assets and one C3 binary, `bruma-1.6.0.40.bin`.
+The downloaded release image was verified end to end: 6,091,280 bytes,
+462,320 bytes remaining in the X4 app slot, SHA-256
+`7fe48d288f1bf8570772e12c726ba700fa53fd655dde46a85a4dfc0d5db0afc4`.
+The independent channel synchronizer passed and committed the published image
+in `c34eea41`. Physical installation is still pending.
+
+- CI: https://github.com/fresquer/bruma-reader/actions/runs/39428428390
+- Release: https://github.com/fresquer/bruma-reader/actions/runs/39428598132
+- Channel: https://github.com/fresquer/bruma-reader/actions/runs/39431125160

@@ -132,6 +132,7 @@ void ActivityManager::loop() {
       if (currentActivity->handleHomeGesture()) {
         return;
       }
+      appsReturnOrigin = false;  // An explicit Home gesture bypasses the Apps return destination.
       goHome();
       return;
     }
@@ -303,7 +304,10 @@ void ActivityManager::goToUsbDrive() {
 
 void ActivityManager::goToSettings() { replaceActivity(std::make_unique<SettingsActivity>(renderer, mappedInput)); }
 
-void ActivityManager::goToApps() { replaceActivity(std::make_unique<AppsActivity>(renderer, mappedInput)); }
+void ActivityManager::goToApps() {
+  appsReturnOrigin = true;
+  replaceActivity(std::make_unique<AppsActivity>(renderer, mappedInput));
+}
 
 bool ActivityManager::goToLibrary(bool restoreSelection) {
   auto library = makeUniqueNoThrow<LibraryActivity>(renderer, mappedInput, restoreSelection);
@@ -399,6 +403,11 @@ void ActivityManager::goToFullScreenMessage(std::string message, EpdFontFamily::
 
 void ActivityManager::goHome(HomeMenuItem initialMenuItem, bool cleanInitialRefresh) {
   libraryReaderOrigin = false;
+  if (appsReturnOrigin && (!currentActivity || currentActivity->name != "Apps")) {
+    goToApps();
+    return;
+  }
+  appsReturnOrigin = false;
   if (initialMenuItem == HomeMenuItem::NONE && currentActivity) {
     const auto& activityName = currentActivity->name;
     if (activityName == "FileBrowser") {

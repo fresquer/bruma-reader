@@ -15,10 +15,7 @@ namespace fui = freeink::ui;
 
 namespace {
 const char* getLocationLabel(const ShortcutDefinition& definition) {
-  return static_cast<CrossPointSettings::SHORTCUT_LOCATION>(SETTINGS.*(definition.locationPtr)) ==
-                 CrossPointSettings::SHORTCUT_HOME
-             ? tr(STR_HOME_LOCATION)
-             : tr(STR_APPS);
+  return isHomeShortcut(definition) ? tr(STR_HOME_SHORTCUT_SHOW) : tr(STR_HOME_SHORTCUT_APPS_ONLY);
 }
 }  // namespace
 
@@ -65,7 +62,7 @@ void ShortcutLocationActivity::onEnter() {
   reloadEntries();
 }
 
-const char* ShortcutLocationActivity::headerTitle() const { return tr(STR_SHORTCUT_LOCATION); }
+const char* ShortcutLocationActivity::headerTitle() const { return tr(STR_HOME_SHORTCUT_LOCATION); }
 
 void ShortcutLocationActivity::activateIndex(const int index) {
   if (index < 0 || index >= static_cast<int>(entries.size())) {
@@ -76,9 +73,7 @@ void ShortcutLocationActivity::activateIndex(const int index) {
   {
     // The render task reads rowItems mid-build; swap the value under the lock.
     RenderLock lock(*this);
-    auto& location = SETTINGS.*(definition->locationPtr);
-    location = location == CrossPointSettings::SHORTCUT_HOME ? CrossPointSettings::SHORTCUT_APPS
-                                                             : CrossPointSettings::SHORTCUT_HOME;
+    setHomeShortcut(*definition, !isHomeShortcut(*definition));
     rowItems[static_cast<size_t>(index)].value = getLocationLabel(*definition);
   }
   requestUpdate();

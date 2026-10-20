@@ -15,7 +15,7 @@ namespace fui = freeink::ui;
 
 namespace {
 const char* getVisibilityLabel(const ShortcutDefinition& definition) {
-  return getShortcutVisibility(definition) ? tr(STR_SHOW) : tr(STR_HIDDEN);
+  return isHomeShortcut(definition) ? tr(STR_HOME_SHORTCUT_SHOW) : tr(STR_HOME_SHORTCUT_APPS_ONLY);
 }
 }  // namespace
 
@@ -65,7 +65,7 @@ void ShortcutVisibilityActivity::onEnter() {
   reloadEntries();
 }
 
-const char* ShortcutVisibilityActivity::headerTitle() const { return tr(STR_SHORTCUT_VISIBILITY); }
+const char* ShortcutVisibilityActivity::headerTitle() const { return tr(STR_HOME_SHORTCUT_VISIBILITY); }
 
 void ShortcutVisibilityActivity::activateIndex(const int index) {
   if (index < 0 || index >= static_cast<int>(entries.size())) {
@@ -76,8 +76,7 @@ void ShortcutVisibilityActivity::activateIndex(const int index) {
   {
     // The render task reads rowItems mid-build; swap the value under the lock.
     RenderLock lock(*this);
-    auto& visible = getShortcutVisibilityRef(SETTINGS, *definition);
-    visible = visible == 0 ? 1 : 0;
+    setHomeShortcut(*definition, !isHomeShortcut(*definition));
     rowItems[static_cast<size_t>(index)].value = getVisibilityLabel(*definition);
   }
   requestUpdate();

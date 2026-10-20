@@ -43,6 +43,7 @@ class ActivityManager {
   std::vector<std::unique_ptr<Activity>> stackActivities;
   std::unique_ptr<Activity> currentActivity;
   bool libraryReaderOrigin = false;
+  bool appsReturnOrigin = false;
 
   void exitActivity(const RenderLock& lock);
 
@@ -90,6 +91,7 @@ class ActivityManager {
   void goToUsbDrive();
   void goToSettings();
   void goToApps();
+  bool returnsToApps() const { return appsReturnOrigin; }
   bool goToLibrary(bool restoreSelection = false);
   void goToFileBrowser(std::string path = {});
   void goToRecentBooks();

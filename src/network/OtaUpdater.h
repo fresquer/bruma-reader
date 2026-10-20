@@ -4,6 +4,7 @@
 
 class OtaUpdater {
   bool updateAvailable = false;
+  bool previewChannel = false;
   std::string latestVersion;
   std::string otaUrl;
   std::string expectedSha256;
@@ -38,6 +39,7 @@ class OtaUpdater {
 
   OtaUpdater() = default;
   bool isUpdateNewer() const;
+  bool isPreview() const { return previewChannel; }
   const std::string& getLatestVersion() const;
   OtaUpdaterError checkForUpdate();
   OtaUpdaterError installUpdate(ProgressCallback onProgress = nullptr, void* ctx = nullptr);

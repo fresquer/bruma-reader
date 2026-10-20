@@ -240,7 +240,8 @@ def validate_artifacts(
     project_dir: Path, tag: str, release_seq: int, base_version: str, target: ReleaseTarget
 ) -> None:
     stem = target.stem(tag)
-    artifact_path = project_dir / "artifacts" / f"{stem}.bin"
+    artifact_name = f"{stem}.bin" if target.board == "x4pro" else f"bruma-{tag.removesuffix('-cpr-vcodex')}.bin"
+    artifact_path = project_dir / "artifacts" / artifact_name
     metadata_path = project_dir / "artifacts" / f"{stem}.json"
     if not artifact_path.exists():
         fail(f"Missing packaged {target.env} firmware artifact: {artifact_path}")
@@ -250,7 +251,7 @@ def validate_artifacts(
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     expected_version = f"{base_version}.{release_seq}"
     checks = {
-        "artifactName": f"{stem}.bin",
+        "artifactName": artifact_name,
         "environment": target.env,
         "version": expected_version,
         "buildSequence": release_seq,
@@ -275,7 +276,7 @@ def validate_artifacts(
             "CrossPoint-style slot; it installs only on the stock partition table"
         )
 
-    ok(f"{target.env} release artifacts match tag {tag} ({stem}.bin, {firmware_bytes} bytes)")
+    ok(f"{target.env} release artifacts match tag {tag} ({artifact_name}, {firmware_bytes} bytes)")
 
 
 def validate_release_notes(project_dir: Path, tag: str) -> None:

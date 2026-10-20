@@ -120,7 +120,7 @@ def package_vcodex_bin(source, target, env):
         board_suffix = "-x4pro"
     artifact_stem = f"{safe_version}-cpr-vcodex{board_suffix}"
 
-    artifact_name = f"{artifact_stem}.bin"
+    artifact_name = f"{artifact_stem}.bin" if pio_env.startswith("x4pro") else f"bruma-{safe_version}.bin"
     artifact_path = output_dir / artifact_name
     shutil.copy2(firmware_path, artifact_path)
 

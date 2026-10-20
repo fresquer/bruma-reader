@@ -21,6 +21,7 @@ void FirmwareManifestJsonParser::reset() {
   parser.reset();
   lastKey = LastKey::NONE;
   depth = 0;
+  project[0] = channel[0] = '\0';
   version[0] = '\0';
   downloadUrl[0] = '\0';
   firmwareSha256[0] = '\0';
@@ -49,7 +50,13 @@ void FirmwareManifestJsonParser::sOnKey(void* ctx, const char* key, size_t len) 
     return;
   }
 
-  if (len == 7 && memcmp(key, "version", 7) == 0) {
+  if (len == 7 && memcmp(key, "project", 7) == 0) {
+    self->lastKey = LastKey::PROJECT;
+    self->project[0] = '\0';
+  } else if (len == 7 && memcmp(key, "channel", 7) == 0) {
+    self->lastKey = LastKey::CHANNEL;
+    self->channel[0] = '\0';
+  } else if (len == 7 && memcmp(key, "version", 7) == 0) {
     self->lastKey = LastKey::VERSION;
     self->versionFound = false;
   } else if (len == 11 && memcmp(key, "downloadUrl", 11) == 0) {
@@ -68,7 +75,11 @@ void FirmwareManifestJsonParser::sOnKey(void* ctx, const char* key, size_t len) 
 
 void FirmwareManifestJsonParser::sOnString(void* ctx, const char* value, size_t len) {
   auto* self = static_cast<FirmwareManifestJsonParser*>(ctx);
-  if (self->depth == 1 && self->lastKey == LastKey::VERSION) {
+  if (self->depth == 1 && self->lastKey == LastKey::PROJECT) {
+    if (len < sizeof(self->project)) safeCopy(self->project, sizeof(self->project), value, len);
+  } else if (self->depth == 1 && self->lastKey == LastKey::CHANNEL) {
+    if (len < sizeof(self->channel)) safeCopy(self->channel, sizeof(self->channel), value, len);
+  } else if (self->depth == 1 && self->lastKey == LastKey::VERSION) {
     safeCopy(self->version, sizeof(self->version), value, len);
     self->versionFound = len > 0 && len < sizeof(self->version);
   } else if (self->depth == 1 && self->lastKey == LastKey::DOWNLOAD_URL) {

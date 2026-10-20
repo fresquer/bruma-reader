@@ -22,7 +22,7 @@ class LibraryActivity final : public UiListActivity {
   LibraryStore::Book books[WINDOW];
   std::string subtitles[WINDOW];
   freeink::ui::ListItem rows[WINDOW];
-  freeink::ui::ListItem menuRows[10];
+  freeink::ui::ListItem menuRows[6];
   std::string menuBookPath, menuBookTitle;
   bool menuBookFinished = false;
   char heading[96] = {};
@@ -42,6 +42,10 @@ class LibraryActivity final : public UiListActivity {
   bool handleButtons() override;
   const char* headerTitle() const override { return heading[0] ? heading : tr(STR_LIBRARY); }
   void drawFooter() override;
+  void drawChrome() override;
+  void navigateButtons() override;
+  void cycleOrder(int delta);
+  int orderBandHeight() const;
   void refreshWindow(int start, int visible);
   void clearWindow();
   void showMenu();

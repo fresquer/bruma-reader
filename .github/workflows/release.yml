@@ -75,7 +75,7 @@ jobs:
           cmake --build build/release-tests -j2
           ctest --test-dir build/release-tests --output-on-failure -j2
 
-      - name: Build CPR-vCodex release
+      - name: Build Bruma preview
         env:
           VCODEX_RELEASE_TAG: ${{ github.ref_name }}
         run: |
@@ -99,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME}${ASSET_SUFFIX}"
-          artifact="artifacts/${tag}.bin"
+          artifact="artifacts/bruma-${GITHUB_REF_NAME%-cpr-vcodex}.bin"
           metadata="artifacts/${tag}.json"
 
           test -f "${artifact}" || {
@@ -121,8 +121,9 @@ jobs:
           tag = os.environ["GITHUB_REF_NAME"] + os.environ.get("ASSET_SUFFIX", "")
           expected_env = os.environ["PIO_ENV"]
           metadata = json.loads(Path(f"artifacts/{tag}.json").read_text(encoding="utf-8"))
-          if metadata.get("artifactName") != f"{tag}.bin":
-              raise SystemExit(f"metadata artifactName mismatch: {metadata.get('artifactName')} != {tag}.bin")
+          expected_name = f"bruma-{os.environ['GITHUB_REF_NAME'].removesuffix('-cpr-vcodex')}.bin"
+          if metadata.get("artifactName") != expected_name:
+              raise SystemExit(f"metadata artifactName mismatch: {metadata.get('artifactName')} != {expected_name}")
           if metadata.get("environment") != expected_env:
               raise SystemExit(f"unexpected release environment: {metadata.get('environment')} != {expected_env}")
           print(f"Validated {metadata['artifactName']} ({metadata['firmwareBytes']} bytes)")
@@ -135,7 +136,7 @@ jobs:
           set -euo pipefail
           release_tag="${GITHUB_REF_NAME}"
           tag="${GITHUB_REF_NAME}${ASSET_SUFFIX}"
-          artifact="artifacts/${tag}.bin"
+          artifact="artifacts/bruma-${GITHUB_REF_NAME%-cpr-vcodex}.bin"
           metadata="artifacts/${tag}.json"
           budget_json="artifacts/${tag}-firmware-budget.json"
           budget_md="artifacts/${tag}-firmware-budget.md"
@@ -145,7 +146,7 @@ jobs:
 
           upload_assets() {
             gh release upload "${release_tag}" \
-              "${artifact}#${tag}.bin" \
+              "${artifact}" \
               "${metadata}#${tag}.json" \
               "${budget_json}#${tag}-firmware-budget.json" \
               "${budget_md}#${tag}-firmware-budget.md" \
@@ -155,15 +156,16 @@ jobs:
           if gh release view "${release_tag}" >/dev/null 2>&1; then
             upload_assets
             if [ -z "${ASSET_SUFFIX}" ]; then
-              gh release edit "${release_tag}" --title "${release_tag}" --notes-file "${notes_file}"
+              gh release edit "${release_tag}" --title "Bruma Reader — Preview 2" --prerelease --latest=false --notes-file "${notes_file}"
             fi
           else
             gh release create "${release_tag}" \
-              "${artifact}#${tag}.bin" \
+              "${artifact}" \
               "${metadata}#${tag}.json" \
               "${budget_json}#${tag}-firmware-budget.json" \
               "${budget_md}#${tag}-firmware-budget.md" \
               --verify-tag \
-              --title "${release_tag}" \
+              --title "Bruma Reader — Preview 2" \
+              --prerelease --latest=false \
               --notes-file "${notes_file}" || upload_assets
           fi

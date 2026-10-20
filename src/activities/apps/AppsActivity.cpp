@@ -11,7 +11,6 @@
 #include "DictionaryActivity.h"
 #include "FavoritesAppActivity.h"
 #include "IfFoundActivity.h"
-#include "OpdsServerStore.h"
 #include "ReadingHeatmapActivity.h"
 #include "ReadingProfileActivity.h"
 #include "ReadingStatsActivity.h"
@@ -25,6 +24,9 @@
 #include "util/ShortcutUiMetadata.h"
 
 namespace fui = freeink::ui;
+fui::ListNav AppsActivity::savedNav;
+ShortcutId AppsActivity::savedShortcut = ShortcutId::Library;
+bool AppsActivity::selectionSaved = false;
 
 namespace {
 std::string buildAppsHeaderSubtitle(const int selectedIndex, const int totalItems, const int itemsPerPage) {
@@ -41,13 +43,6 @@ std::string buildAppsHeaderSubtitle(const int selectedIndex, const int totalItem
 
 void AppsActivity::loadShortcuts() {
   appShortcuts = getConfiguredShortcuts(CrossPointSettings::SHORTCUT_APPS);
-  if (!OPDS_STORE.hasServers()) {
-    appShortcuts.erase(std::remove_if(appShortcuts.begin(), appShortcuts.end(),
-                                      [](const ShortcutDefinition* definition) {
-                                        return definition && definition->id == ShortcutId::OpdsBrowser;
-                                      }),
-                       appShortcuts.end());
-  }
   rebuildRows();
 }
 
@@ -81,9 +76,28 @@ void AppsActivity::rebuildRows() {
   }
 }
 
+void AppsActivity::restoreShortcut() {
+  if (!selectionSaved) return;
+  const auto selected = std::find_if(appShortcuts.begin(), appShortcuts.end(),
+                                     [](const auto* definition) { return definition->id == savedShortcut; });
+  if (selected != appShortcuts.end()) nav.selected = static_cast<int>(selected - appShortcuts.begin());
+  nav.follow(listCount());
+}
+
+bool AppsActivity::handleCustomInput() {
+  if (!waitForBackRelease) return false;
+  // Some apps exit on Back press. Consume its release here so it cannot
+  // immediately leave the restored Apps screen as well.
+  if (!mappedInput.isPressed(MappedInputManager::Button::Back)) waitForBackRelease = false;
+  return true;
+}
+
 void AppsActivity::onEnter() {
   UiListActivity::onEnter();
+  waitForBackRelease = mappedInput.isPressed(MappedInputManager::Button::Back);
   loadShortcuts();
+  nav = savedNav;
+  restoreShortcut();
 }
 
 void AppsActivity::onExit() {
@@ -136,6 +150,9 @@ void AppsActivity::activateIndex(const int index) {
   // unrelated row when the hub reappears.
   app.clearTapFlash();
   nav.selected = index;
+  selectionSaved = true;
+  savedNav = nav;
+  savedShortcut = appShortcuts[index]->id;
   openApp(index);
 }
 
@@ -144,7 +161,7 @@ void AppsActivity::openApp(const int index) {
   switch (appShortcuts[index]->id) {
     case ShortcutId::Library:
       activityManager.goToLibrary();
-      break;
+      return;
     case ShortcutId::BrowseFiles:
       activityManager.goToFileBrowser();
       return;
@@ -203,15 +220,11 @@ void AppsActivity::openApp(const int index) {
     // The shortcut set can change underneath (Settings > Shortcuts); the
     // interaction table still indexes the old rows until the next render.
     closeRouting();
+    waitForBackRelease = mappedInput.isPressed(MappedInputManager::Button::Back);
     {
       RenderLock lock(*this);
       loadShortcuts();
-      if (appShortcuts.empty()) {
-        nav.selected = 0;
-      } else {
-        nav.selected = std::min(nav.selected, listCount() - 1);
-      }
-      nav.follow(listCount());
+      restoreShortcut();
     }
     requestUpdate();
   });

@@ -1,0 +1,49 @@
+name: Sync Bruma preview OTA
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published Bruma tag (empty selects newest firmware including previews)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: bruma-ota-channel
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Verify and mirror published Bruma firmware
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRUMA_TAG: ${{ inputs.tag }}
+        run: |
+          args=()
+          if [ -n "$BRUMA_TAG" ]; then args+=(--tag "$BRUMA_TAG"); fi
+          python scripts/sync_bruma_firmware.py "${args[@]}"
+      - name: Commit channel update
+        run: |
+          git add docs/firmware/bruma
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Update Bruma preview OTA channel'
+          git push origin master
+      # GITHUB_TOKEN pushes do not trigger the legacy branch-based Pages build.
+      - name: Request GitHub Pages build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"

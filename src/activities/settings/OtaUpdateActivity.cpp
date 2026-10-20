@@ -96,13 +96,14 @@ void OtaUpdateActivity::checkForUpdateNow() {
   const char* options[] = {tr(STR_CANCEL), tr(STR_UPDATE)};
   // Default the selection to Update so the hardware Confirm button installs,
   // matching the pre-popup layout (Back = cancel, Confirm = update).
-  confirmPopup.show(tr(STR_NEW_UPDATE), options, 2, 1, [this](const int idx) {
-    if (idx == 1) {
-      runUpdateInstall();
-    } else {
-      finish();
-    }
-  });
+  confirmPopup.show(I18N.get(updater.isPreview() ? StrId::STR_BRUMA_PREVIEW : StrId::STR_BRUMA_STABLE), options, 2, 1,
+                    [this](const int idx) {
+                      if (idx == 1) {
+                        runUpdateInstall();
+                      } else {
+                        finish();
+                      }
+                    });
   requestUpdate();
 }
 

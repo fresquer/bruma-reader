@@ -24,6 +24,7 @@ std::string version;
 std::string manifestOverride;
 int manifestCalls;
 bool failPrimaryManifest;
+std::vector<std::string> requestedUrls;
 }  // namespace
 
 const esp_partition_t* esp_ota_get_next_update_partition(const esp_partition_t*) {
@@ -57,13 +58,14 @@ uint16_t runningPartitionChipId() { return 5; }  // ESP32-C3
 bool HttpDownloader::fetchUrl(const std::string& url, const DataCallback& consume, const std::string&,
                               const std::string&) {
   ++manifestCalls;
+  requestedUrls.push_back(url);
   if (failPrimaryManifest && url.find("raw.githubusercontent.com") == std::string::npos) return false;
   if (!manifestOk) return false;
   const std::string manifest =
       manifestOverride.empty()
-          ? "{\"version\":\"" + version +
-                "\",\"downloadUrl\":\"https://example.com/firmware.bin\",\"size\":" + std::to_string(advertisedSize) +
-                ",\"sha256\":\"" + std::string(64, 'a') + "\"}"
+          ? "{\"project\":\"bruma-reader\",\"channel\":\"preview\",\"version\":\"" + version +
+                "\",\"downloadUrl\":\"https://fresquer.github.io/bruma-reader/firmware/bruma/" + version +
+                ".bin\",\"size\":" + std::to_string(advertisedSize) + ",\"sha256\":\"" + std::string(64, 'a') + "\"}"
           : manifestOverride;
   return consume(reinterpret_cast<const uint8_t*>(manifest.data()), manifest.size());
 }
@@ -95,6 +97,7 @@ class OtaUpdate : public testing::Test {
     manifestOverride.clear();
     manifestCalls = 0;
     failPrimaryManifest = false;
+    requestedUrls.clear();
   }
   OtaUpdater::OtaUpdaterError install() {
     if (updater.checkForUpdate() != OtaUpdater::OK) return OtaUpdater::JSON_PARSE_ERROR;
@@ -200,7 +203,7 @@ TEST_F(OtaUpdate, CurrentOrNewerInstalledVersionIsSuccessfulCheckWithoutInstalla
 }
 
 TEST_F(OtaUpdate, FullPublishedPagesManifestCanBeChecked) {
-  std::ifstream file(TEST_REPO_ROOT "/docs/firmware/manifest.json");
+  std::ifstream file(TEST_REPO_ROOT "/docs/firmware/bruma/manifest.json");
   ASSERT_TRUE(file.is_open());
   manifestOverride.assign(std::istreambuf_iterator<char>(file), {});
   EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::OK);
@@ -219,4 +222,61 @@ TEST_F(OtaUpdate, RetriesPublishedManifestOnIndependentHttpsHost) {
   EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::HTTP_ERROR);
   EXPECT_FALSE(updater.isUpdateNewer());
   EXPECT_TRUE(updater.getLatestVersion().empty());
+}
+
+TEST_F(OtaUpdate, BrumaPreviewChannelNeverQueriesUpstream) {
+  EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::OK);
+  EXPECT_TRUE(updater.isPreview());
+  failPrimaryManifest = true;
+  EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::OK);
+  for (const auto& url : requestedUrls) {
+    EXPECT_EQ(url.find("franssjz"), std::string::npos);
+    EXPECT_TRUE(url.find("https://fresquer.github.io/bruma-reader/") == 0 ||
+                url.find("https://raw.githubusercontent.com/fresquer/bruma-reader/") == 0);
+  }
+}
+TEST_F(OtaUpdate, RejectsForeignIdentityMissingChannelAndForeignImageUrl) {
+  const std::string base =
+      R"({"project":"bruma-reader","channel":"preview","version":"1.6.0.99-cpr-vcodex","downloadUrl":"https://fresquer.github.io/bruma-reader/firmware/bruma/1.6.0.99-cpr-vcodex.bin","size":65536,"sha256":")" +
+      std::string(64, 'a') + "\"}";
+  for (const auto& replacement : std::vector<std::pair<std::string, std::string>>{
+           {"bruma-reader", "cpr-vcodex"},
+           {"preview", "unknown"},
+           {"1.6.0.99-cpr-vcodex", "../1.6.0.99-cpr-vcodex"},
+           {"https://fresquer.github.io", "https://example.com"},
+           {"/firmware/bruma/1.6.0.99-cpr-vcodex.bin", "/firmware/bruma/../firmware.bin"}}) {
+    manifestOverride = base;
+    size_t position = 0;
+    while ((position = manifestOverride.find(replacement.first, position)) != std::string::npos) {
+      manifestOverride.replace(position, replacement.first.size(), replacement.second);
+      position += replacement.second.size();
+    }
+    EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::JSON_PARSE_ERROR);
+    EXPECT_FALSE(updater.isUpdateNewer());
+  }
+  manifestOverride = base;
+  manifestOverride.erase(manifestOverride.find("\"channel\":\"preview\","), 20);
+  EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::JSON_PARSE_ERROR);
+  EXPECT_EQ(begins, 0);
+  EXPECT_EQ(switches, 0);
+}
+TEST_F(OtaUpdate, StableChannelIsExplicitAndOldProjectManifestIsRejected) {
+  std::ifstream legacy(TEST_REPO_ROOT "/docs/firmware/manifest.json");
+  manifestOverride.assign(std::istreambuf_iterator<char>(legacy), {});
+  EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::JSON_PARSE_ERROR);
+  std::ifstream bruma(TEST_REPO_ROOT "/docs/firmware/bruma/manifest.json");
+  manifestOverride.assign(std::istreambuf_iterator<char>(bruma), {});
+  const auto pos = manifestOverride.find("preview");
+  ASSERT_NE(pos, std::string::npos);
+  manifestOverride.replace(pos, 7, "stable");
+  EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::OK);
+  EXPECT_FALSE(updater.isPreview());
+}
+
+TEST_F(OtaUpdate, AcceptsBrumaDownloadNameWithCompatibleInternalVersion) {
+  manifestOverride =
+      R"({"project":"bruma-reader","channel":"preview","version":"1.6.0.40-cpr-vcodex","downloadUrl":"https://fresquer.github.io/bruma-reader/firmware/bruma/bruma-1.6.0.40.bin","size":65536,"sha256":")" +
+      std::string(64, 'a') + "\"}";
+  EXPECT_EQ(updater.checkForUpdate(), OtaUpdater::OK);
+  EXPECT_TRUE(updater.isUpdateNewer());
 }

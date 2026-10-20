@@ -144,6 +144,15 @@ inline bool getShortcutVisibility(const ShortcutDefinition& definition, const Cr
   return settings.*(definition.visiblePtr) != 0;
 }
 
+inline bool isHomeShortcut(const ShortcutDefinition& definition, const CrossPointSettings& settings = SETTINGS) {
+  return settings.*(definition.locationPtr) == CrossPointSettings::SHORTCUT_HOME &&
+         getShortcutVisibility(definition, settings);
+}
+inline void setHomeShortcut(const ShortcutDefinition& definition, const bool enabled) {
+  SETTINGS.*(definition.locationPtr) = enabled ? CrossPointSettings::SHORTCUT_HOME : CrossPointSettings::SHORTCUT_APPS;
+  if (enabled) SETTINGS.*(definition.visiblePtr) = 1;
+}
+
 inline uint8_t& getShortcutVisibilityRef(CrossPointSettings& settings, const ShortcutDefinition& definition) {
   return settings.*(definition.visiblePtr);
 }
@@ -179,8 +188,9 @@ inline std::vector<const ShortcutDefinition*> getConfiguredShortcuts(
     const CrossPointSettings::SHORTCUT_LOCATION location) {
   std::vector<const ShortcutDefinition*> shortcuts;
   for (const auto& definition : getShortcutDefinitions()) {
-    if (static_cast<CrossPointSettings::SHORTCUT_LOCATION>(SETTINGS.*(definition.locationPtr)) == location &&
-        getShortcutVisibility(definition)) {
+    if (location == CrossPointSettings::SHORTCUT_APPS ||
+        (static_cast<CrossPointSettings::SHORTCUT_LOCATION>(SETTINGS.*(definition.locationPtr)) == location &&
+         getShortcutVisibility(definition))) {
       shortcuts.push_back(&definition);
     }
   }
@@ -200,7 +210,7 @@ inline std::vector<ShortcutOrderEntry> getShortcutOrderEntries(const ShortcutOrd
   for (const auto& definition : getShortcutDefinitions()) {
     const auto location = static_cast<CrossPointSettings::SHORTCUT_LOCATION>(SETTINGS.*(definition.locationPtr));
     if ((group == ShortcutOrderGroup::Home && location == CrossPointSettings::SHORTCUT_HOME) ||
-        (group == ShortcutOrderGroup::Apps && location == CrossPointSettings::SHORTCUT_APPS)) {
+        group == ShortcutOrderGroup::Apps) {
       entries.push_back(ShortcutOrderEntry{&definition, false});
     }
   }

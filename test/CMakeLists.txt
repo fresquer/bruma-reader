@@ -79,6 +79,9 @@ if(Python3_Interpreter_FOUND)
   add_test(NAME autoflash_manifest_regressions
     COMMAND ${Python3_EXECUTABLE} -m unittest discover -s test/release_tools -p AutoflashManifestTest.py)
   set_tests_properties(autoflash_manifest_regressions PROPERTIES WORKING_DIRECTORY ${REPO_ROOT})
+  add_test(NAME bruma_channel_regressions
+    COMMAND ${Python3_EXECUTABLE} -m unittest discover -s test/release_tools -p BrumaChannelTest.py)
+  set_tests_properties(bruma_channel_regressions PROPERTIES WORKING_DIRECTORY ${REPO_ROOT})
   add_test(NAME firmware_packaging_regressions
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/release_tools/FirmwarePackagingTest.py)
   add_test(

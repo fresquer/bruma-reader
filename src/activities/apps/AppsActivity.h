@@ -7,7 +7,7 @@
 #include "util/ShortcutRegistry.h"
 
 // Apps hub: the entry point for every fork app. A plain tappable list of the
-// configured app shortcuts (name, description, icon); Back goes Home.
+// registered applications (name, description, icon); Back goes Home.
 class AppsActivity final : public UiListActivity {
   std::vector<const ShortcutDefinition*> appShortcuts;
   // Row text storage: the ListItem rows point into these, so they live as
@@ -16,6 +16,12 @@ class AppsActivity final : public UiListActivity {
   std::vector<std::string> shortcutSubtitles;
   std::vector<freeink::ui::ListItem> rowItems;
 
+  static freeink::ui::ListNav savedNav;
+  static ShortcutId savedShortcut;
+  static bool selectionSaved;
+  void restoreShortcut();
+  bool waitForBackRelease = false;
+  bool handleCustomInput() override;
   void loadShortcuts();
   void rebuildRows();
   void openApp(int index);

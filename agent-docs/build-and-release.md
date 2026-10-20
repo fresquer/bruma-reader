@@ -85,6 +85,14 @@ when the build artifacts already exist and were produced intentionally.
 
 ## Packaging Artifacts
 
+Bruma C3 builds now produce `artifacts/bruma-<version>.bin`. Metadata and budget
+report names retain the compatible `<tag>` stem, but their `artifactName` points
+to that single Bruma binary. The SD picker validates `.bin` content, not its
+basename. Release tags and embedded versions remain compatible. X4 Pro remains
+internal-only and is never published. The Bruma synchronizer accepts the old
+preview .39 filename and the new Bruma filename; use only the independent
+Bruma channel workflow, not the inherited Auto Flash synchronizer.
+
 Important scripts:
 
 - `scripts/package_vcodex_bin.py`: packages firmware after PlatformIO builds.

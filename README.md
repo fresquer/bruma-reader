@@ -17,10 +17,12 @@ It is a fork of **[CPR-vCodex](https://github.com/franssjz/cpr-vcodex)**, itself
 | Feature | What you can do |
 |---|---|
 | **Library** | Browse books from different SD folders in one paginated list, with titles and authors. |
-| **Sorting and filters** | Sort by title, author, last read, or recently added; show all books, unread books, books in progress, or finished books. |
+| **Sorting and filters** | Use the side buttons to cycle the visible order: title, author, last read, or recently added; show all books, unread books, books in progress, or finished books. |
 | **Reading states** | Mark a book as finished or undo that mark without changing its progress or reading time. |
 | **Remaining reading time** | Show a book or chapter estimate in the reading status bar, or hide it. |
 | **Bruma Home** | See your current book, recent reads, daily goal, and statistics, with shortcuts to Library and Apps. |
+| **Complete Apps catalog** | Every registered app remains available, independently of Home shortcuts, including OPDS without configured servers. |
+| **Bruma updates** | Receive newer published Bruma previews and releases through the separate Bruma OTA channel after installing .40 from SD. |
 | **Fonts from the SD card** | Install `.cpfont` files without Wi-Fi, from Settings or the file browser. |
 
 ### All your books in one list
@@ -74,9 +76,9 @@ The [original CPR-vCodex documentation](README.cpr-vcodex.md) preserves its cred
 
 ## Download a preview build
 
-[Bruma Reader — Preview 1](https://github.com/fresquer/bruma-reader/releases/tag/1.6.0.39-cpr-vcodex) provides the ESP32-C3 firmware binary, build metadata, and size-budget reports. This is a prerelease for testing; physical X4 validation is still pending.
+[Bruma Reader — Preview 2](https://github.com/fresquer/bruma-reader/releases/tag/1.6.0.40-cpr-vcodex) provides the ESP32-C3 firmware binary, build metadata, and size-budget reports. This is a prerelease for testing. The first preview has an initial positive user report; this new preview still needs physical X4 validation.
 
-The packaged filename retains `cpr-vcodex` for compatibility. Download the `.bin` asset from this repository to get Bruma's additions. The inherited OTA and Auto Flash links still target CPR-vCodex; this preview is not promoted to those update channels.
+Download **`bruma-1.6.0.40.bin`** from this repository. Install this transition preview from SD using the [Bruma installation guide](docs/INSTALL.md). It introduces a separate Bruma OTA channel for subsequent versions; the already installed .39 preview still has its inherited updater. The inherited Auto Flash remains separate and must not be used to install Bruma.
 
 ## Compatibility and status
 
@@ -84,9 +86,9 @@ Bruma development focuses on **Xteink X4 / ESP32-C3**. The base retains X3 panel
 
 **X4 Pro is not a distribution target.** CPR-vCodex's withdrawal of its binaries remains in effect.
 
-Bruma's local review passed **291 host tests**, X4 simulator checks, and `default` and `gh_release` builds. Library was checked with more than 500 books, including storage errors and low-memory conditions. Speed, legibility, and the behavior of the new features still require validation on a physical X4.
+Bruma's local review passed **296 host tests**, X4 simulator checks, and `default` and `gh_release` builds. Library was checked with more than 500 books, including storage errors and low-memory conditions. Speed, legibility, and the behavior of the new features still require validation on a physical X4.
 
-Bruma is the name of this project. Internal identifiers, `/.crosspoint/` paths, and `cpr-vcodex` artifact names are retained for compatibility. The banner and this README do not change branding inside the firmware.
+Bruma is the name of this project. Internal identifiers, `/.crosspoint/` paths, and release-tag identifiers are retained for compatibility. The banner and this README do not change branding inside the firmware.
 
 ## Try it on your computer
 

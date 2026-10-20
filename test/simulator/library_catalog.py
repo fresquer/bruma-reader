@@ -111,11 +111,11 @@ def main():
                 make_epub(root, f'Shelf{i % 7}/book{i}.epub', f'Book {i}', f'Author {i % 20}')
         menu_at = 45000 if args.large else 6000
         script = (f'1500:ENTER;2500:ENTER;{menu_at}:ENTER:1200;'
-                  f'{menu_at + 2000}:DOWN;{menu_at + 2500}:ENTER;{menu_at + 2900}:UP;{menu_at + 3500}:QUIT')
+                  f'{menu_at + 2000}:BACK;{menu_at + 2500}:DOWN;{menu_at + 2900}:LEFT:1200;{menu_at + 4700}:QUIT')
         first = run(root, qa, 'scan', script, [
             (1200, 'home.bmp'), (2200, 'create.bmp'),
             (menu_at - 500, 'library.bmp'), (menu_at + 1800, 'menu.bmp'),
-            (menu_at + 2800, 'author-order.bmp'), (menu_at + 3300, 'last-page.bmp'),
+            (menu_at + 2800, 'author-order.bmp'), (menu_at + 4400, 'last-page.bmp'),
         ], timeout=65)
         books = catalog(root / '.crosspoint/library.bin')
         assert len(books) == (506 if args.large else 6), len(books)

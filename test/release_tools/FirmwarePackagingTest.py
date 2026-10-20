@@ -63,7 +63,7 @@ class FirmwarePackagingTest(unittest.TestCase):
             )
             (root / "build/firmware.bin").write_bytes(image_header("1.6.0.36"))
             SCRIPT["package_vcodex_bin"](None, None, Environment(root, "gh_release"))
-            self.assertTrue((root / "artifacts/1.6.0.36-cpr-vcodex.bin").exists())
+            self.assertTrue((root / "artifacts/bruma-1.6.0.36.bin").exists())
             self.assertEqual((root / "README.md").read_text(), readme)
             self.assertEqual((root / "artifacts/.release-counter-1-6-0.txt").read_text().strip(), "36")
 
@@ -77,7 +77,7 @@ class FirmwarePackagingTest(unittest.TestCase):
                 file.write(image_header())
                 file.truncate(0x640000)
             SCRIPT["package_vcodex_bin"](None, None, Environment(root))
-            self.assertEqual((root / "artifacts/test-cpr-vcodex.bin").stat().st_size, 0x640000)
+            self.assertEqual((root / "artifacts/bruma-test.bin").stat().st_size, 0x640000)
 
     def test_final_bin_overflow_is_rejected_before_artifacts_or_metadata(self):
         for profile, limit in (("default", 0x640000), ("gh_release", 0x640000), ("x4pro", 0x7E0000)):
@@ -101,7 +101,7 @@ class FirmwarePackagingTest(unittest.TestCase):
                 (root / "build/firmware.bin").write_bytes(header)
                 with self.assertRaises(ValueError):
                     SCRIPT["package_vcodex_bin"](None, None, Environment(root))
-                self.assertFalse((root / "artifacts/test-cpr-vcodex.bin").exists())
+                self.assertFalse((root / "artifacts/bruma-test.bin").exists())
 
 
 if __name__ == "__main__":

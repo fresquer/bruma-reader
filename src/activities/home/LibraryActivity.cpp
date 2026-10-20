@@ -13,6 +13,7 @@
 #include "ReadingStatsStore.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
+#include "fontIds.h"
 
 namespace fui = freeink::ui;
 using enum StrId;
@@ -20,6 +21,7 @@ std::string LibraryActivity::savedPath;
 int LibraryActivity::savedIndex = 0;
 
 namespace {
+const StrId orderLabels[] = {STR_TITLE, STR_AUTHOR, STR_LIBRARY_LAST_READ, STR_LIBRARY_ADDED};
 const StrId filterLabels[] = {STR_LIBRARY_ALL, STR_LIBRARY_READING, STR_LIBRARY_PENDING, STR_LIBRARY_FINISHED};
 LibraryStore::ReadingState unfinishedState(const LibraryStore::Book& book) {
   const auto* stats = READING_STATS.findBook(book.path);  // Path/known-path lookup; never read book contents.
@@ -64,6 +66,7 @@ LibraryActivity::LibraryActivity(GfxRenderer& renderer, MappedInputManager& inpu
 
 void LibraryActivity::onEnter() {
   UiListActivity::onEnter();
+  if (SETTINGS.libraryOrder > 3) SETTINGS.libraryOrder = 0;
   const auto order = static_cast<LibraryStore::Order>(SETTINGS.libraryOrder);
   if (!store.load(order)) {
     if (Storage.exists("/.crosspoint/library.bin") || Storage.exists("/.crosspoint/library.bin.bak"))
@@ -102,7 +105,7 @@ bool LibraryActivity::handleHomeGesture() {
 }
 int LibraryActivity::listCount() const {
   if (scanning) return 0;
-  if (menu) return menuBookPath.empty() ? 9 : 10;
+  if (menu) return menuBookPath.empty() ? 5 : 6;
   if (!store.exists() || !store.visibleCount() || notice != STR_NONE_OPT) return 1;
   return static_cast<int>(store.visibleCount());
 }
@@ -163,7 +166,7 @@ void LibraryActivity::showMenu() {
         notice = STR_LIBRARY_FAILED;
     }
     menu = true;
-    nav.reset(SETTINGS.libraryOrder);
+    nav.reset();
     closeRouting();
   }
   requestUpdate();
@@ -234,7 +237,86 @@ bool LibraryActivity::handleCustomInput() {
   if (finished) requestUpdate();
   return true;
 }
+void LibraryActivity::cycleOrder(const int delta) {
+  {
+    RenderLock lock(*this);
+    const auto previous = SETTINGS.libraryOrder;
+    const auto next = static_cast<uint8_t>((previous + delta + 4) % 4);
+    std::string selectedPath;
+    const int previousIndex = nav.selected;
+    if (store.exists() && store.visibleCount() && notice == STR_NONE_OPT) {
+      LibraryStore::Book selected;
+      if (!store.readVisibleBook(previousIndex, selected)) {
+        notice = STR_LIBRARY_FAILED;
+        requestUpdate();
+        return;
+      }
+      selectedPath = selected.path;
+    }
+    // An unbuilt/empty library can still remember the user's chosen order.
+    if (store.exists() && !store.setOrder(static_cast<LibraryStore::Order>(next))) {
+      store.load(static_cast<LibraryStore::Order>(previous));
+      refreshReadingView();
+      notice = STR_LIBRARY_FAILED;
+    } else {
+      SETTINGS.libraryOrder = next;
+      if (!SETTINGS.saveToFile()) {
+        SETTINGS.libraryOrder = previous;
+        if (store.exists()) {
+          store.load(static_cast<LibraryStore::Order>(previous));
+          refreshReadingView();
+        }
+        notice = STR_LIBRARY_FAILED;
+      } else if (notice == STR_NONE_OPT || notice == STR_LIBRARY_FILTER_EMPTY || notice == STR_LIBRARY_EMPTY) {
+        refreshEmptyNotice();
+      }
+    }
+    const int selected = selectedPath.empty() ? -1 : store.findVisiblePath(selectedPath);
+    nav.reset(selected >= 0 ? selected
+                            : std::min(previousIndex, std::max(0, static_cast<int>(store.visibleCount()) - 1)));
+    clearWindow();
+    closeRouting();
+    LOG_DBG("LIB", "Order=%u selected=%d", SETTINGS.libraryOrder, nav.selected);
+  }
+  requestUpdate();
+}
+
+void LibraryActivity::navigateButtons() {
+  if (menu) {
+    UiListActivity::navigateButtons();
+    return;
+  }
+  const auto previous =
+      mappedInput.isNavDirectionSwapped() ? MappedInputManager::Button::Right : MappedInputManager::Button::Left;
+  const auto next =
+      mappedInput.isNavDirectionSwapped() ? MappedInputManager::Button::Left : MappedInputManager::Button::Right;
+  const int count = listCount();
+  buttonNavigator.onRelease({next},
+                            [this, count] { moveSelectionTo(ButtonNavigator::nextIndex(nav.selected, count)); });
+  buttonNavigator.onRelease({previous},
+                            [this, count] { moveSelectionTo(ButtonNavigator::previousIndex(nav.selected, count)); });
+  buttonNavigator.onLongPressOnce(
+      {next}, [this, count] { moveSelectionTo(ButtonNavigator::nextPageIndex(nav.selected, count, nav.pageRows())); });
+  buttonNavigator.onLongPressOnce({previous}, [this, count] {
+    moveSelectionTo(ButtonNavigator::previousPageIndex(nav.selected, count, nav.pageRows()));
+  });
+}
+
 bool LibraryActivity::handleButtons() {
+  if (!menu && !scanning) {
+    if (mappedInput.wasReleased(MappedInputManager::Button::Up)) {
+      cycleOrder(-1);
+      return true;
+    }
+    if (mappedInput.wasReleased(MappedInputManager::Button::Down)) {
+      cycleOrder(1);
+      return true;
+    }
+    // The side buttons must not also reach the list's long-press navigation.
+    if (mappedInput.isPressed(MappedInputManager::Button::Up) ||
+        mappedInput.isPressed(MappedInputManager::Button::Down))
+      return true;
+  }
   if (!menu && menuAvailable() && mappedInput.wasLongPressed(MappedInputManager::Button::Confirm, 1000)) {
     showMenu();
     return true;
@@ -273,24 +355,14 @@ void LibraryActivity::activateIndex(int index) {
   if (scanning || index < 0 || index >= listCount()) return;
   app.clearTapFlash();
   if (menu) {
-    if (index == 4) {
+    if (index == 0) {
       beginUpdate();
       return;
     }
     {
       RenderLock lock(*this);
-      if (index < 4) {
-        if (!store.setOrder(static_cast<LibraryStore::Order>(index))) {
-          store.load(static_cast<LibraryStore::Order>(SETTINGS.libraryOrder));
-          refreshReadingView();
-          notice = STR_LIBRARY_FAILED;
-        } else {
-          SETTINGS.libraryOrder = index;
-          SETTINGS.saveToFile();
-          refreshEmptyNotice();
-        }
-      } else if (index < 9) {
-        SETTINGS.libraryFilter = index - 5;
+      if (index < 5) {
+        SETTINGS.libraryFilter = index - 1;
         SETTINGS.saveToFile();
         if (!refreshReadingView())
           notice = STR_LIBRARY_FAILED;
@@ -307,7 +379,7 @@ void LibraryActivity::activateIndex(int index) {
           refreshEmptyNotice();
       }
       menu = false;
-      if (index == 9)
+      if (index == 5)
         nav.reset(std::min<int>(bookNav.selected, std::max(0, static_cast<int>(store.visibleCount()) - 1)));
       else
         nav.reset();
@@ -356,8 +428,9 @@ void LibraryActivity::activateIndex(int index) {
 }
 void LibraryActivity::buildScreen(UiScreen& screen) {
   const auto& metrics = UITheme::getInstance().getMetrics();
-  screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
-                                                static_cast<int16_t>(metrics.buttonHintsHeight), 0});
+  screen.setContentMarginFromScreen(
+      fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight + orderBandHeight()), 0,
+                  static_cast<int16_t>(metrics.buttonHintsHeight), 0});
   screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
   if (scanning) {
     screen.centeredText(progress, screen.theme().bodyText);
@@ -368,22 +441,16 @@ void LibraryActivity::buildScreen(UiScreen& screen) {
   props.action = ACTION_ROW;
   props.inputMask = fui::InputTouch | fui::InputLongPress;
   if (menu) {
-    const StrId labels[10] = {STR_TITLE,
-                              STR_AUTHOR,
-                              STR_LIBRARY_LAST_READ,
-                              STR_LIBRARY_ADDED,
-                              STR_LIBRARY_UPDATE,
-                              STR_LIBRARY_ALL,
-                              STR_LIBRARY_READING,
-                              STR_LIBRARY_PENDING,
-                              STR_LIBRARY_FINISHED,
-                              menuBookFinished ? STR_LIBRARY_MARK_UNFINISHED : STR_LIBRARY_MARK_FINISHED};
+    const StrId labels[6] = {
+        STR_LIBRARY_UPDATE,   STR_LIBRARY_ALL,
+        STR_LIBRARY_READING,  STR_LIBRARY_PENDING,
+        STR_LIBRARY_FINISHED, menuBookFinished ? STR_LIBRARY_MARK_UNFINISHED : STR_LIBRARY_MARK_FINISHED};
     for (int i = 0; i < listCount(); ++i) {
       menuRows[i] = fui::ListItem{};
       menuRows[i].label = I18N.get(labels[i]);
       menuRows[i].actionValue = i;
-      if (i == SETTINGS.libraryOrder || i == SETTINGS.libraryFilter + 5) menuRows[i].value = I18N.get(STR_SELECTED);
-      if (i == 9) menuRows[i].subtitle = menuBookTitle.c_str();
+      if (i == SETTINGS.libraryFilter + 1) menuRows[i].value = I18N.get(STR_SELECTED);
+      if (i == 5) menuRows[i].subtitle = menuBookTitle.c_str();
     }
     props.items = menuRows;
     syncListViewport(screen, props);
@@ -406,6 +473,7 @@ void LibraryActivity::buildScreen(UiScreen& screen) {
   props.labelText = screen.theme().smallText;
   props.labelText.bold = true;
   syncListViewport(screen, props, true);
+  props.rowHeight += static_cast<int16_t>(metrics.verticalSpacing);
   refreshWindow(nav.top, nav.visibleRows);
   props.items = rows;
   props.itemsWindowFirst = static_cast<uint16_t>(windowStart < 0 ? 0 : windowStart);
@@ -423,8 +491,30 @@ void LibraryActivity::buildScreen(UiScreen& screen) {
     screen.list(props);
   }
 }
+int LibraryActivity::orderBandHeight() const {
+  if (menu || scanning) return 0;
+  return renderer.getLineHeight(UI_10_FONT_ID) + UITheme::getInstance().getMetrics().verticalSpacing * 2;
+}
+void LibraryActivity::drawChrome() {
+  UiListActivity::drawChrome();
+  if (menu || scanning) return;
+  const auto& metrics = UITheme::getInstance().getMetrics();
+  const int y = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
+  char label[96];
+  std::snprintf(label, sizeof(label), "%s: %s", tr(STR_LIBRARY_SORT_LABEL),
+                I18N.get(orderLabels[SETTINGS.libraryOrder % 4]));
+  renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, y, label);
+  const char* hint = tr(STR_LIBRARY_SIDE_ORDER);
+  const int hintWidth = renderer.getTextWidth(UI_10_FONT_ID, hint);
+  if (renderer.getTextWidth(UI_10_FONT_ID, label) + hintWidth + metrics.contentSidePadding * 3 <
+      renderer.getScreenWidth())
+    renderer.drawText(UI_10_FONT_ID, renderer.getScreenWidth() - metrics.contentSidePadding - hintWidth, y, hint);
+}
 void LibraryActivity::drawFooter() {
-  const auto back = scanning ? STR_CANCEL : menu || (notice != STR_NONE_OPT && store.count()) ? STR_BACK : STR_HOME;
+  const auto back = scanning                                            ? STR_CANCEL
+                    : menu || (notice != STR_NONE_OPT && store.count()) ? STR_BACK
+                    : activityManager.returnsToApps()                   ? STR_APPS
+                                                                        : STR_HOME;
   const auto labels =
       mappedInput.mapLabels(I18N.get(back),
                             scanning ? ""

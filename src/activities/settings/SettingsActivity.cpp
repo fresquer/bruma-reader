@@ -374,8 +374,8 @@ std::vector<SettingInfo> buildAppSettings() {
   v.push_back(SettingInfo::Action(StrId::STR_IF_FOUND_RETURN_ME, SettingAction::IfFound));
 
   v.push_back(SettingInfo::Section(StrId::STR_SHORTCUTS_SECTION));
-  v.push_back(SettingInfo::Action(StrId::STR_SHORTCUT_LOCATION, SettingAction::ShortcutLocation));
-  v.push_back(SettingInfo::Action(StrId::STR_SHORTCUT_VISIBILITY, SettingAction::ShortcutVisibility));
+  v.push_back(SettingInfo::Action(StrId::STR_HOME_SHORTCUT_LOCATION, SettingAction::ShortcutLocation));
+  v.push_back(SettingInfo::Action(StrId::STR_HOME_SHORTCUT_VISIBILITY, SettingAction::ShortcutVisibility));
   v.push_back(SettingInfo::Action(StrId::STR_ORDER_HOME_SHORTCUTS, SettingAction::OrderHomeShortcuts));
   v.push_back(SettingInfo::Action(StrId::STR_ORDER_APPS_SHORTCUTS, SettingAction::OrderAppsShortcuts));
   return v;
@@ -423,14 +423,9 @@ std::string getNetworkSettingValueText() {
 
 std::string getShortcutLocationSettingValueText() {
   int homeCount = 1;  // Apps hub is always in Home.
-  int appsCount = 0;
+  const int appsCount = static_cast<int>(getShortcutDefinitions().size());
   for (const auto& definition : getShortcutDefinitions()) {
-    const auto location = static_cast<CrossPointSettings::SHORTCUT_LOCATION>(SETTINGS.*(definition.locationPtr));
-    if (location == CrossPointSettings::SHORTCUT_HOME) {
-      ++homeCount;
-    } else {
-      ++appsCount;
-    }
+    if (isHomeShortcut(definition)) ++homeCount;
   }
   return "H" + std::to_string(homeCount) + " A" + std::to_string(appsCount);
 }
@@ -438,7 +433,7 @@ std::string getShortcutLocationSettingValueText() {
 std::string getShortcutVisibilitySettingValueText() {
   int visibleCount = 0;
   for (const auto& definition : getShortcutDefinitions()) {
-    if (getShortcutVisibility(definition)) {
+    if (isHomeShortcut(definition)) {
       ++visibleCount;
     }
   }

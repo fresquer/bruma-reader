@@ -93,7 +93,7 @@ def main():
         settings['uiTheme'] = 6  # The same library from the new Bruma Home dashboard.
         settings_path.write_text(json.dumps(settings))
         final = run(root, 'bruma-auto-finish',
-            '1500:DOWN;1900:DOWN;2300:DOWN;2600:DOWN;3000:ENTER;3500:DOWN;4000:DOWN;4500:ENTER;'
+            '1500:DOWN;1900:DOWN;2300:DOWN;2600:DOWN;3000:ENTER;3500:RIGHT;4000:RIGHT;4500:ENTER;'
             '8000:RIGHT;10000:BACK;13000:QUIT', [(11000, 'returned')])
         assert 'Entering activity: EpubReader' in final, final[-2000:]
         assert state_events(root)['/c.epub'] == 0  # Real completion restores automatic Finished.

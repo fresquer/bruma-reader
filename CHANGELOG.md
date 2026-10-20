@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0.40 — Bruma Reader preview 2
+
+| Version | Changes |
+|---|---|
+| `1.6.0.40` | - Use a separate, project-validated Bruma OTA manifest, accepting published previews and stable releases while preserving verified HTTPS, image integrity and inactive-slot installation.<br>- Show the active library order and cycle it directly with the side buttons; preserve selection and leave refresh, filters and reading states in the long-press menu.<br>- List every registered application in Apps, including OPDS without servers, independently of Home shortcuts; preserve selection and pagination when returning.<br>- Install this transition candidate from SD. Install the transition from SD; subsequent versions use the Bruma OTA channel. Physical validation of this preview remains pending. |
+
 ## 1.6.0.39 — Bruma Reader preview 1
 
 | Version | Changes |

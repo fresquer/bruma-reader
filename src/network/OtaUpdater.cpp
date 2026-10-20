@@ -7,7 +7,6 @@
 #include "HttpDownloader.h"
 #include <FirmwareManifestJsonParser.h>
 #include <Logging.h>
-#include <ReleaseJsonParser.h>
 #include <esp_ota_ops.h>
 #include <esp_wifi.h>
 #include <mbedtls/sha256.h>
@@ -24,10 +23,10 @@
 #include "version.h"
 
 namespace {
-constexpr char firmwareManifestUrl[] = "https://franssjz.github.io/cpr-vcodex/firmware/manifest.json";
+constexpr char firmwareManifestUrl[] = "https://fresquer.github.io/bruma-reader/firmware/bruma/manifest.json";
 constexpr char firmwareManifestFallbackUrl[] =
-    "https://raw.githubusercontent.com/franssjz/cpr-vcodex/master/docs/firmware/manifest.json";
-constexpr char latestReleaseUrl[] = "https://api.github.com/repos/franssjz/cpr-vcodex/releases/latest";
+    "https://raw.githubusercontent.com/fresquer/bruma-reader/master/docs/firmware/bruma/manifest.json";
+constexpr char firmwareDownloadPrefix[] = "https://fresquer.github.io/bruma-reader/firmware/bruma/";
 
 struct ParsedVersion {
   int parts[4] = {0, 0, 0, 0};
@@ -85,14 +84,6 @@ ParsedVersion parseVersion(const char* version) {
 // asset: firmware-<board>.bin / <tag>-<board>.bin (see ReleaseJsonParser).
 bool isC3X4Board() { return board_tag::boardNameLen() == 2 && memcmp(board_tag::boardName(), "x4", 2) == 0; }
 
-void legacyAssetName(char* out, size_t outSize) {
-  if (isC3X4Board()) {
-    snprintf(out, outSize, "firmware.bin");
-    return;
-  }
-  snprintf(out, outSize, "firmware-%.*s.bin", static_cast<int>(board_tag::boardNameLen()), board_tag::boardName());
-}
-
 // Stream the response straight into a parser as it arrives. Buffering the whole
 // body in a std::string would add a growing allocation on top of the TLS
 // session's heap during the fetch; with -fno-exceptions an OOM there aborts.
@@ -140,87 +131,45 @@ bool sha256Matches(const std::string& expected, const uint8_t actual[32]) {
 
 OtaUpdater::OtaUpdaterError OtaUpdater::checkForUpdate() {
   updateAvailable = false;
+  previewChannel = false;
   latestVersion.clear();
   otaUrl.clear();
   expectedSha256.clear();
-  otaSize = 0;
-  processedSize = 0;
-  totalSize = 0;
+  otaSize = processedSize = totalSize = 0;
+  // Bruma distributes only the shared C3/X4 image. Never fall back to a
+  // different project's release or an unvalidated S3 image.
+  if (!isC3X4Board()) return WRONG_DEVICE_ERROR;
 
   size_t bytesReceived = 0;
-  // The auto-flash manifest only describes the C3 X4/X3 binary, so other boards
-  // go straight to the GitHub release and its board-suffixed asset.
-  if (isC3X4Board()) {
-    FirmwareManifestJsonParser manifestParser;
-    LOG_DBG("OTA", "Checking firmware manifest (current: %s)", currentVersionString());
-    OtaUpdaterError manifestResult = performStreamingRequest(firmwareManifestUrl, manifestParser, bytesReceived);
-    if (manifestResult != OK || !manifestParser.foundManifest()) {
-      // The same published manifest is committed by the Pages sync. Retry via
-      // GitHub's raw host when Pages/TLS fails, retaining certificate validation
-      // and the mandatory image digest. Never turn a failed query into NO_UPDATE.
-      manifestParser.reset();
-      manifestResult = performStreamingRequest(firmwareManifestFallbackUrl, manifestParser, bytesReceived);
-    }
-    LOG_DBG("OTA", "Manifest response received: %zu bytes total", bytesReceived);
-    LOG_DBG("OTA", "Manifest parser result: manifest=%s", manifestParser.foundManifest() ? "yes" : "no");
-
-    if (manifestResult != OK) {
-      LOG_ERR("OTA", "Firmware manifest fetch failed");
-      return manifestResult;
-    }
-    if (!manifestParser.foundManifest()) {
-      LOG_ERR("OTA", "Firmware manifest missing required version, URL, or SHA-256");
-      return JSON_PARSE_ERROR;
-    }
-
-    latestVersion = manifestParser.getVersion();
-    otaUrl = manifestParser.getDownloadUrl();
-    expectedSha256 = manifestParser.getFirmwareSha256();
-    otaSize = manifestParser.getFirmwareSize();
-    totalSize = otaSize;
-    updateAvailable = true;
-    LOG_DBG("OTA", "Found update via manifest: tag=%s size=%zu", latestVersion.c_str(), otaSize);
-    LOG_DBG("OTA", "Firmware URL: %s", otaUrl.c_str());
-    return OK;
+  FirmwareManifestJsonParser parser;
+  auto valid = [&parser]() {
+    std::string version = parser.getVersion();
+    if (version.empty() || version.find_first_not_of(
+                               "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-") != std::string::npos)
+      return false;
+    constexpr char suffix[] = "-cpr-vcodex";
+    if (version.ends_with(suffix)) version.resize(version.size() - (sizeof(suffix) - 1));
+    const bool ownImage =
+        (std::string(firmwareDownloadPrefix) + parser.getVersion() + ".bin") == parser.getDownloadUrl() ||
+        (std::string(firmwareDownloadPrefix) + "bruma-" + version + ".bin") == parser.getDownloadUrl();
+    return parser.foundManifest() && strcmp(parser.getProject(), "bruma-reader") == 0 &&
+           (strcmp(parser.getChannel(), "preview") == 0 || strcmp(parser.getChannel(), "stable") == 0) && ownImage;
+  };
+  auto result = performStreamingRequest(firmwareManifestUrl, parser, bytesReceived);
+  if (result != OK || !valid()) {
+    parser.reset();
+    result = performStreamingRequest(firmwareManifestFallbackUrl, parser, bytesReceived);
   }
+  if (result != OK) return result;
+  if (!valid()) return JSON_PARSE_ERROR;
 
-  LOG_DBG("OTA", "Checking latest GitHub release (current: %s)", currentVersionString());
-
-  ReleaseJsonParser releaseParser;
-  // Each board updates from its own release asset. The parser prefers the
-  // tag-named asset (<tag>.bin / <tag>-<board>.bin) and falls back to the legacy
-  // name set here; releases without a firmware asset are ignored.
-  char assetName[48];
-  legacyAssetName(assetName, sizeof(assetName));
-  releaseParser.setFirmwareAssetName(assetName);
-  const OtaUpdaterError releaseResult = performStreamingRequest(latestReleaseUrl, releaseParser, bytesReceived);
-  LOG_DBG("OTA", "Release response received: %zu bytes total", bytesReceived);
-  LOG_DBG("OTA", "Release parser results: tag=%s firmware=%s", releaseParser.foundTag() ? "yes" : "no",
-          releaseParser.foundFirmware() ? "yes" : "no");
-
-  if (releaseResult != OK) {
-    LOG_ERR("OTA", "Release check fetch failed");
-    return releaseResult;
-  }
-
-  if (!releaseParser.foundTag()) {
-    LOG_ERR("OTA", "No tag_name in release JSON");
-    return JSON_PARSE_ERROR;
-  }
-
-  if (!releaseParser.foundFirmware()) {
-    LOG_INF("OTA", "No %s asset in latest release", assetName);
-    return NO_UPDATE;
-  }
-
-  latestVersion = releaseParser.getTagName();
-  otaUrl = releaseParser.getFirmwareUrl();
-  otaSize = releaseParser.getFirmwareSize();
-  totalSize = otaSize;
+  latestVersion = parser.getVersion();
+  otaUrl = parser.getDownloadUrl();
+  expectedSha256 = parser.getFirmwareSha256();
+  otaSize = totalSize = parser.getFirmwareSize();
+  previewChannel = strcmp(parser.getChannel(), "preview") == 0;
   updateAvailable = true;
-
-  LOG_DBG("OTA", "Found update via release: tag=%s size=%zu", latestVersion.c_str(), otaSize);
-  LOG_DBG("OTA", "Firmware URL: %s", otaUrl.c_str());
+  LOG_INF("OTA", "Bruma %s: %s (%u bytes)", parser.getChannel(), latestVersion.c_str(), static_cast<unsigned>(otaSize));
   return OK;
 }
 

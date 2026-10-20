@@ -551,7 +551,11 @@ void FileBrowserActivity::drawChrome() {
 }
 
 void FileBrowserActivity::drawFooter() {
-  const char* backLabel = (basepath == "/") ? (mode != Mode::Books ? tr(STR_BACK) : tr(STR_HOME)) : tr(STR_BACK);
+  const char* backLabel =
+      (basepath == "/")
+          ? (mode != Mode::Books ? tr(STR_BACK)
+                                 : I18N.get(activityManager.returnsToApps() ? StrId::STR_APPS : StrId::STR_HOME))
+          : tr(STR_BACK);
   // In PickFirmware mode, Confirm on a .bin returns the path to the caller (not "open"); show
   // STR_SELECT instead. Directories in the same picker still descend, so keep STR_OPEN there.
   const bool selectingFirmwareFile = mode != Mode::Books && !files.empty() && nav.selected >= 0 &&
